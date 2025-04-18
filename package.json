@@ -1,20 +1,33 @@
 {
-  "name": "workspace",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "express": "^5.1.0",
-    "fs": "^0.0.1-security",
-    "https": "^1.0.0",
-    "socket.io": "^4.8.1",
-    "ws": "^8.18.1"
-  }
+	"name": "biometric-tracker",
+	"version": "1.0.0",
+	"main": "server.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "node server.js",
+		"dev": "nodemon server.js"
+	},
+	"keywords": [
+		"eye-tracking",
+		"heart-rate",
+		"biometrics",
+		"websockets",
+		"real-time"
+	],
+	"author": "",
+	"license": "ISC",
+	"description": "Real-time eye tracking and heart rate monitoring system with WebSocket communication",
+	"engines": {
+		"node": ">=14.0.0"
+	},
+	"dependencies": {
+		"express": "^5.1.0",
+		"fs": "^0.0.1-security",
+		"https": "^1.0.0",
+		"socket.io": "^4.8.1",
+		"ws": "^8.18.1"
+	},
+	"devDependencies": {
+		"nodemon": "^3.0.3"
+	}
 }
