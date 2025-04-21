@@ -91,18 +91,58 @@ async function loadModels() {
 		// Update UI to show loading status
 		updateConnectionStatus("Loading models...", "connecting");
 
-		// Load Face API models
-		await faceapi.nets.tinyFaceDetector.load("/");
-		await faceapi.nets.faceLandmark68Net.load("/");
+		// Check if face-api is defined
+		if (typeof faceapi === "undefined") {
+			console.error("Face API library not found. Will retry in 2 seconds...");
+			// Retry after a delay instead of trying to load dynamically
+			setTimeout(loadModels, 2000);
+			return;
+		}
 
-		console.log("Models loaded successfully");
+		console.log("Face API found, loading models...");
+
+		// Create models directory if loading from server
+		try {
+			// Load models directly from CDN to avoid server issues
+			const modelPath =
+				"https://justadudewhohacks.github.io/face-api.js/models";
+
+			// Load models
+			await Promise.all([
+				faceapi.nets.tinyFaceDetector.load(modelPath),
+				faceapi.nets.faceLandmark68Net.load(modelPath),
+			]);
+
+			console.log("Models loaded successfully from CDN");
+		} catch (modelError) {
+			console.warn(
+				"Failed to load models from CDN, trying local path:",
+				modelError
+			);
+
+			// Fall back to local models
+			const modelPath = "/models";
+			await Promise.all([
+				faceapi.nets.tinyFaceDetector.load(modelPath),
+				faceapi.nets.faceLandmark68Net.load(modelPath),
+			]);
+
+			console.log("Models loaded successfully from local path");
+		}
+
 		updateConnectionStatus("Models loaded", "connected");
 
 		// Enable camera button after models are loaded
 		document.getElementById("toggle-camera").disabled = false;
 	} catch (error) {
 		console.error("Error loading models:", error);
-		updateConnectionStatus("Failed to load models", "not-connected");
+		updateConnectionStatus(
+			"Failed to load models, retrying...",
+			"not-connected"
+		);
+
+		// Retry after a delay
+		setTimeout(loadModels, 5000);
 	}
 }
 

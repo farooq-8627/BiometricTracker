@@ -8,11 +8,15 @@
 		<!-- TensorFlow.js for ML processing -->
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 		<!-- Face-api.js for face detection and landmarks -->
-		<script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+			integrity="sha256-lcS+gTzkJQCbJoQe+638gpBOxr4HkXnmGTvuw0nfU9I="
+			crossorigin="anonymous"
+		></script>
 		<!-- Chart.js for data visualization -->
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 		<!-- Socket.io for real-time communication -->
-		<script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/socket.io/4.4.1/socket.io.min.js"></script>
 		<!-- Feather icons -->
 		<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 	</head>
@@ -186,6 +190,11 @@
 		<!-- Common Scripts -->
 		<script src="utils.js"></script>
 		<script src="webSocketUtils.js"></script>
+
+		<!-- Face API - use browser-compatible version -->
+		<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
+		<!-- Load after Face API -->
 		<script src="eyeTracking.js"></script>
 		<script src="heartRateDetection.js"></script>
 
@@ -194,7 +203,18 @@
 		<script>
 			// Initialize Feather icons
 			document.addEventListener("DOMContentLoaded", () => {
-				feather.replace();
+				// Check if feather is defined before using it
+				if (typeof feather !== "undefined") {
+					feather.replace();
+				} else {
+					console.error("Feather icons library not loaded");
+					// Try to load it again
+					const featherScript = document.createElement("script");
+					featherScript.src =
+						"https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js";
+					featherScript.onload = () => feather.replace();
+					document.head.appendChild(featherScript);
+				}
 
 				// Setup device selection
 				document.getElementById("mobile-btn").addEventListener("click", () => {
