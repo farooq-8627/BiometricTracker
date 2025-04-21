@@ -103,17 +103,37 @@ async function loadModels() {
 
 		// Create models directory if loading from server
 		try {
-			// Load models directly from CDN to avoid server issues
+			// Log out which models are already loaded
+			console.log("Model loading status before loading attempt:");
+			console.log(
+				"- TinyFaceDetector loaded:",
+				faceapi.nets.tinyFaceDetector.isLoaded
+			);
+			console.log(
+				"- FaceLandmark68Net loaded:",
+				faceapi.nets.faceLandmark68Net.isLoaded
+			);
+
+			// Try loading from CDN with more explicit options
 			const modelPath =
 				"https://justadudewhohacks.github.io/face-api.js/models";
+			console.log("Attempting to load models from CDN:", modelPath);
 
-			// Load models
+			// Use more robust loading approach with explicit model paths
 			await Promise.all([
 				faceapi.nets.tinyFaceDetector.load(modelPath),
 				faceapi.nets.faceLandmark68Net.load(modelPath),
 			]);
 
-			console.log("Models loaded successfully from CDN");
+			// Verify models loaded successfully
+			if (
+				faceapi.nets.tinyFaceDetector.isLoaded &&
+				faceapi.nets.faceLandmark68Net.isLoaded
+			) {
+				console.log("Models loaded successfully from CDN");
+			} else {
+				throw new Error("Models not properly loaded from CDN");
+			}
 		} catch (modelError) {
 			console.warn(
 				"Failed to load models from CDN, trying local path:",
@@ -122,12 +142,30 @@ async function loadModels() {
 
 			// Fall back to local models
 			const modelPath = "/models";
-			await Promise.all([
-				faceapi.nets.tinyFaceDetector.load(modelPath),
-				faceapi.nets.faceLandmark68Net.load(modelPath),
-			]);
+			console.log("Attempting to load models from local path:", modelPath);
 
-			console.log("Models loaded successfully from local path");
+			try {
+				await Promise.all([
+					faceapi.nets.tinyFaceDetector.load(modelPath),
+					faceapi.nets.faceLandmark68Net.load(modelPath),
+				]);
+
+				// Verify models loaded successfully
+				if (
+					faceapi.nets.tinyFaceDetector.isLoaded &&
+					faceapi.nets.faceLandmark68Net.isLoaded
+				) {
+					console.log("Models loaded successfully from local path");
+				} else {
+					throw new Error("Models not properly loaded from local path");
+				}
+			} catch (localModelError) {
+				console.error(
+					"Failed to load models from local path:",
+					localModelError
+				);
+				throw localModelError; // Re-throw to be caught by outer catch
+			}
 		}
 
 		updateConnectionStatus("Models loaded", "connected");
@@ -319,25 +357,75 @@ function startTracking() {
 	feather.replace();
 	document.getElementById("eye-status").innerText = "Tracking";
 
+	// Track combined biometric data
+	let latestEyeData = null;
+	let latestHeartRate = null;
+
+	// Function to send combined data
+	const sendCombinedData = () => {
+		if (!pairedLaptopId) return;
+
+		// Only send if we have data to send
+		if (!latestEyeData) return;
+
+		// Create combined data packet
+		const combinedData = {
+			...latestEyeData,
+			timestamp: Date.now(),
+			heartRate: latestHeartRate ? latestHeartRate.bpm : null,
+			heartRateConfidence: latestHeartRate ? latestHeartRate.confidence : null,
+		};
+
+		// Send the combined data to the paired laptop
+		if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
+			// Use a specific message type for combined data
+			const data = {
+				type: "combined_biometric_data",
+				targetId: pairedLaptopId,
+				data: combinedData,
+			};
+			ws.send(JSON.stringify(data));
+		} else if (socket && socket.connected) {
+			socket.emit("combined_biometric_data", {
+				targetId: pairedLaptopId,
+				data: combinedData,
+			});
+		}
+
+		console.log("Sent combined biometric data to laptop");
+	};
+
 	// Start eye tracking interval (30fps)
 	eyeTrackingInterval = setInterval(async () => {
 		if (videoElement.readyState === 4) {
-			const eyeData = await processEyeTracking(
-				videoElement,
-				overlayCanvas,
-				overlayContext
-			);
+			try {
+				const eyeData = await processEyeTracking(
+					videoElement,
+					overlayCanvas,
+					overlayContext
+				);
 
-			// Send eye tracking data to paired laptop if available
-			if (pairedLaptopId && eyeData) {
-				if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
-					sendEyeTrackingData(ws, pairedLaptopId, eyeData);
-				} else if (socket && socket.connected) {
-					socket.emit("eye_tracking_data", {
-						targetId: pairedLaptopId,
-						trackingData: eyeData,
-					});
+				// Update eye tracking metrics display
+				if (eyeData) {
+					updateEyeTrackingMetrics(eyeData);
+					latestEyeData = eyeData;
+
+					// Also send individual eye tracking data for compatibility
+					if (pairedLaptopId) {
+						if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
+							sendEyeTrackingData(ws, pairedLaptopId, eyeData);
+						} else if (socket && socket.connected) {
+							socket.emit("eye_tracking_data", {
+								targetId: pairedLaptopId,
+								trackingData: eyeData,
+							});
+						}
+					}
+				} else {
+					console.log("No face detected for eye tracking");
 				}
+			} catch (error) {
+				console.error("Error during eye tracking processing:", error);
 			}
 		}
 	}, 33); // ~30fps
@@ -345,28 +433,39 @@ function startTracking() {
 	// Start heart rate detection interval (once every 2 seconds)
 	heartRateInterval = setInterval(async () => {
 		if (videoElement.readyState === 4) {
-			const heartRateData = await detectHeartRate(videoElement);
+			try {
+				const heartRateData = await detectHeartRate(videoElement);
 
-			if (heartRateData) {
-				lastHeartRate = heartRateData.bpm;
-				document.getElementById("heart-rate-value").innerText = `${Math.round(
-					lastHeartRate
-				)} BPM`;
+				if (heartRateData) {
+					latestHeartRate = heartRateData;
+					lastHeartRate = heartRateData.bpm;
+					document.getElementById("heart-rate-value").innerText = `${Math.round(
+						lastHeartRate
+					)} BPM`;
 
-				// Send heart rate data to paired laptop if available
-				if (pairedLaptopId) {
-					if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
-						sendHeartRateData(ws, pairedLaptopId, heartRateData);
-					} else if (socket && socket.connected) {
-						socket.emit("heart_rate_data", {
-							targetId: pairedLaptopId,
-							heartRateData: heartRateData,
-						});
+					// Also send individual heart rate data for compatibility
+					if (pairedLaptopId) {
+						if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
+							sendHeartRateData(ws, pairedLaptopId, heartRateData);
+						} else if (socket && socket.connected) {
+							socket.emit("heart_rate_data", {
+								targetId: pairedLaptopId,
+								heartRateData: heartRateData,
+							});
+						}
 					}
 				}
+			} catch (error) {
+				console.error("Error during heart rate detection:", error);
 			}
 		}
 	}, 2000);
+
+	// Send combined data at regular intervals (5 times per second)
+	const combinedDataInterval = setInterval(sendCombinedData, 200);
+
+	// Store the interval for cleanup
+	window.combinedDataInterval = combinedDataInterval;
 }
 
 // Stop tracking
@@ -384,6 +483,12 @@ function stopTracking() {
 	if (heartRateInterval) {
 		clearInterval(heartRateInterval);
 		heartRateInterval = null;
+	}
+
+	// Clear combined data interval
+	if (window.combinedDataInterval) {
+		clearInterval(window.combinedDataInterval);
+		window.combinedDataInterval = null;
 	}
 
 	// Update UI
@@ -564,3 +669,180 @@ window.addEventListener("beforeunload", () => {
 		ws.close();
 	}
 });
+
+// Update the eye tracking metrics display with new data
+function updateEyeTrackingMetrics(eyeData) {
+	// Skip if eyeData is null or undefined
+	if (!eyeData) {
+		console.log("No eye tracking data available to display");
+		return;
+	}
+
+	// Create or get container for extended metrics
+	let metricsContainer = document.getElementById("extended-eye-metrics");
+	if (!metricsContainer) {
+		// If container doesn't exist yet, create it
+		const mobileInterface = document.getElementById("mobile-interface");
+		const metricsSection = mobileInterface.querySelector(".metrics");
+
+		if (metricsSection) {
+			// Create a new section for extended metrics
+			metricsContainer = document.createElement("div");
+			metricsContainer.id = "extended-eye-metrics";
+			metricsContainer.className = "extended-metrics";
+			metricsSection.appendChild(metricsContainer);
+
+			// Add CSS for the extended metrics
+			const style = document.createElement("style");
+			style.textContent = `
+				.extended-metrics {
+					display: grid;
+					grid-template-columns: 1fr 1fr;
+					gap: 10px;
+					margin-top: 15px;
+					padding: 10px;
+					background: rgba(0, 0, 0, 0.2);
+					border-radius: 8px;
+				}
+				.metric-item {
+					font-size: 12px;
+					display: flex;
+					flex-direction: column;
+				}
+				.metric-item .label {
+					font-weight: bold;
+					color: #aaa;
+				}
+				.metric-item .value {
+					color: #fff;
+				}
+			`;
+			document.head.appendChild(style);
+		}
+	}
+
+	// Update or create the metrics display
+	if (metricsContainer) {
+		// Define metrics to display, checking that properties exist before accessing
+		const gazeDirection = eyeData.gazeDirection || { x: 0, y: 0 };
+		const headDirection = eyeData.headDirection || {
+			pitch: 0,
+			yaw: 0,
+			roll: 0,
+		};
+		const headPosition = eyeData.headPosition || { x: 0, y: 0, z: 0 };
+		const pupilDiameter = eyeData.pupilDiameter || 0;
+		const pupilDilationPercent = eyeData.pupilDilationPercent || 0;
+
+		const metrics = [
+			{
+				id: "gaze-direction",
+				label: "Gaze Direction",
+				value: `x: ${gazeDirection.x.toFixed(2)}, y: ${gazeDirection.y.toFixed(
+					2
+				)}`,
+			},
+			{
+				id: "pupil-size",
+				label: "Pupil Diameter",
+				value: `${pupilDiameter.toFixed(1)}px (${pupilDilationPercent.toFixed(
+					0
+				)}%)`,
+			},
+			{
+				id: "head-rotation",
+				label: "Head Rotation",
+				value: `P: ${headDirection.pitch.toFixed(
+					1
+				)}° Y: ${headDirection.yaw.toFixed(1)}° R: ${headDirection.roll.toFixed(
+					1
+				)}°`,
+			},
+			{
+				id: "head-position",
+				label: "Head Movement",
+				value: `x: ${headPosition.x.toFixed(1)}, y: ${headPosition.y.toFixed(
+					1
+				)}, z: ${headPosition.z.toFixed(1)}`,
+			},
+		];
+
+		// Update or create each metric
+		metrics.forEach((metric) => {
+			let metricElement = document.getElementById(metric.id);
+
+			if (!metricElement) {
+				// Create new metric element if it doesn't exist
+				metricElement = document.createElement("div");
+				metricElement.id = metric.id;
+				metricElement.className = "metric-item";
+
+				const labelElement = document.createElement("span");
+				labelElement.className = "label";
+				labelElement.textContent = metric.label;
+
+				const valueElement = document.createElement("span");
+				valueElement.className = "value";
+
+				metricElement.appendChild(labelElement);
+				metricElement.appendChild(valueElement);
+				metricsContainer.appendChild(metricElement);
+			}
+
+			// Update the value
+			const valueElement = metricElement.querySelector(".value");
+			if (valueElement) {
+				valueElement.textContent = metric.value;
+			}
+		});
+	}
+
+	// Update the main eye status with brief summary
+	const eyeStatus = document.getElementById("eye-status");
+	if (eyeStatus) {
+		// Safely access gaze direction properties
+		const gazeDirection = eyeData.gazeDirection || { x: 0, y: 0 };
+		const gazeX = gazeDirection.x;
+		const gazeY = gazeDirection.y;
+
+		// Create a text description of where the user is looking
+		let gazeDescription = "Looking ";
+		if (Math.abs(gazeX) < 0.2 && Math.abs(gazeY) < 0.2) {
+			gazeDescription += "center";
+		} else {
+			if (gazeY < -0.3) gazeDescription += "up";
+			else if (gazeY > 0.3) gazeDescription += "down";
+
+			if (gazeX < -0.3)
+				gazeDescription += gazeY < -0.3 || gazeY > 0.3 ? " and left" : " left";
+			else if (gazeX > 0.3)
+				gazeDescription +=
+					gazeY < -0.3 || gazeY > 0.3 ? " and right" : " right";
+		}
+
+		eyeStatus.textContent = gazeDescription;
+	}
+}
+
+// Update webSocketUtils.js sendEyeTrackingData function to include new data
+function sendEyeTrackingData(ws, targetId, trackingData) {
+	const data = {
+		type: "eye_tracking_data",
+		targetId: targetId,
+		trackingData: {
+			blinkRate: trackingData.blinkRate,
+			saccadeVelocity: trackingData.saccadeVelocity,
+			gazeDuration: trackingData.gazeDuration,
+			pupilDilation: trackingData.pupilDilation,
+			gazeDirection: trackingData.gazeDirection,
+			headDirection: trackingData.headDirection,
+			headPosition: trackingData.headPosition,
+			pupilDiameter: trackingData.pupilDiameter,
+			pupilDilationPercent: trackingData.pupilDilationPercent,
+		},
+	};
+
+	if (ws.readyState === WebSocket.OPEN) {
+		ws.send(JSON.stringify(data));
+	}
+}

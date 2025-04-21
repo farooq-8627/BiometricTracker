@@ -160,13 +160,84 @@ function handleEyeTrackingData(ws, data) {
 		const targetWs = wsClients.laptop.get(data.targetId);
 
 		if (targetWs) {
+			// Validate and sanitize tracking data before sending
+			const sanitizedData = sanitizeEyeTrackingData(data.trackingData);
+
 			sendToWebSocket(targetWs, {
 				type: "eye_tracking_update",
 				sourceId: ws.id,
-				data: data.trackingData,
+				data: sanitizedData,
 			});
 		}
 	}
+}
+
+// Helper function to validate and sanitize eye tracking data
+function sanitizeEyeTrackingData(trackingData) {
+	if (!trackingData) {
+		return {
+			blinkRate: 0,
+			saccadeVelocity: 0,
+			gazeDuration: 0,
+			pupilDilation: 0,
+			gazeDirection: { x: 0, y: 0 },
+			pupilDiameter: 4.0,
+			headDirection: { pitch: 0, yaw: 0, roll: 0 },
+			headPosition: { x: 0, y: 0, z: 0 },
+		};
+	}
+
+	// Create a copy to avoid modifying the original
+	const sanitized = { ...trackingData };
+
+	// Ensure basic eye tracking metrics exist
+	sanitized.blinkRate =
+		typeof sanitized.blinkRate === "number" ? sanitized.blinkRate : 0;
+	sanitized.saccadeVelocity =
+		typeof sanitized.saccadeVelocity === "number"
+			? sanitized.saccadeVelocity
+			: 0;
+	sanitized.gazeDuration =
+		typeof sanitized.gazeDuration === "number" ? sanitized.gazeDuration : 0;
+	sanitized.pupilDilation =
+		typeof sanitized.pupilDilation === "number" ? sanitized.pupilDilation : 0;
+
+	// Ensure new biometric data points exist and are valid
+
+	// Validate gaze direction
+	if (
+		!sanitized.gazeDirection ||
+		typeof sanitized.gazeDirection.x !== "number" ||
+		typeof sanitized.gazeDirection.y !== "number"
+	) {
+		sanitized.gazeDirection = { x: 0, y: 0 };
+	}
+
+	// Validate pupil diameter
+	sanitized.pupilDiameter =
+		typeof sanitized.pupilDiameter === "number" ? sanitized.pupilDiameter : 4.0;
+
+	// Validate head direction
+	if (
+		!sanitized.headDirection ||
+		typeof sanitized.headDirection.pitch !== "number" ||
+		typeof sanitized.headDirection.yaw !== "number" ||
+		typeof sanitized.headDirection.roll !== "number"
+	) {
+		sanitized.headDirection = { pitch: 0, yaw: 0, roll: 0 };
+	}
+
+	// Validate head position
+	if (
+		!sanitized.headPosition ||
+		typeof sanitized.headPosition.x !== "number" ||
+		typeof sanitized.headPosition.y !== "number" ||
+		typeof sanitized.headPosition.z !== "number"
+	) {
+		sanitized.headPosition = { x: 0, y: 0, z: 0 };
+	}
+
+	return sanitized;
 }
 
 function handleHeartRateData(ws, data) {

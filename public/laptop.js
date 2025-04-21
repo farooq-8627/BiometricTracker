@@ -87,6 +87,63 @@ function initializeLaptopInterface() {
 
 	setupUIEventListeners();
 	setupCharts();
+	initializeEyeTrackingVisualization();
+}
+
+// Initialize eye tracking visualization with empty state
+function initializeEyeTrackingVisualization() {
+	const canvas = document.getElementById("eye-tracking-viz");
+	if (!canvas) return;
+
+	const ctx = canvas.getContext("2d");
+	const width = canvas.width;
+	const height = canvas.height;
+
+	// Clear canvas
+	ctx.clearRect(0, 0, width, height);
+
+	// Draw empty grid
+	drawBackgroundGrid(ctx, width, height);
+	drawCoordinateSystem(ctx, width, height);
+	drawGazeDirectionLabels(ctx, width, height);
+
+	// Draw placeholder face
+	const centerX = width / 2;
+	const centerY = height / 2;
+	const faceRadius = width * 0.15;
+
+	// Face outline
+	ctx.beginPath();
+	ctx.ellipse(
+		centerX,
+		centerY,
+		faceRadius,
+		faceRadius * 1.3,
+		0,
+		0,
+		Math.PI * 2
+	);
+	ctx.strokeStyle = "#ccc";
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// Display instructions
+	ctx.font = "16px Arial";
+	ctx.fillStyle = "#999";
+	ctx.textAlign = "center";
+	ctx.fillText(
+		"Waiting for eye tracking data...",
+		centerX,
+		centerY + faceRadius * 2
+	);
+	ctx.textAlign = "left";
+
+	// Display version info
+	ctx.font = "10px Arial";
+	ctx.fillStyle = "#999";
+	ctx.textAlign = "right";
+	ctx.fillText("Eye Tracking v1.0", width - 10, height - 10);
+	ctx.textAlign = "left";
 }
 
 // Fall back to Socket.io if WebSocket fails
@@ -515,44 +572,424 @@ function disconnectDevice(deviceId) {
 	}
 }
 
-// Process eye tracking data from the mobile device
+// Process eye tracking data
 function processEyeTrackingData(data) {
-	eyeTrackingData.push(data);
+	// Add data to tracking array
+	eyeTrackingData.push({
+		timestamp: Date.now(),
+		blinkRate: data.blinkRate || 0,
+		saccadeVelocity: data.saccadeVelocity || 0,
+		gazeDuration: data.gazeDuration || 0,
+		gazeDirection: data.gazeDirection || { x: 0, y: 0 },
+		pupilDiameter: data.pupilDiameter || 4.0,
+		pupilDilationPercent: data.pupilDilationPercent || 50,
+		headDirection: data.headDirection || { pitch: 0, yaw: 0, roll: 0 },
+		headPosition: data.headPosition || { x: 0, y: 0, z: 0 },
+	});
 
-	// Limit the data array size
-	if (eyeTrackingData.length > 60) {
-		// Last 60 data points (1 minute at 1 Hz)
+	// Keep only the last 100 data points
+	if (eyeTrackingData.length > 100) {
 		eyeTrackingData.shift();
 	}
 
-	// Update eye movement chart
-	if (eyeMovementChart) {
-		const timestamps = eyeTrackingData.map((_, index) => {
-			const time = new Date();
-			time.setSeconds(time.getSeconds() - (eyeTrackingData.length - index - 1));
-			return time.toLocaleTimeString("en-US", {
-				hour12: false,
-				hour: "2-digit",
-				minute: "2-digit",
-				second: "2-digit",
-			});
-		});
+	// Update metrics display
+	updateEyeTrackingMetrics(data);
 
-		eyeMovementChart.data.labels = timestamps;
+	// Update the real-time visualization
+	renderEyeTrackingVisualization(data);
+
+	// Update charts
+	if (eyeMovementChart) {
+		const labels = eyeTrackingData.map((d) =>
+			new Date(d.timestamp).toLocaleTimeString()
+		);
+
+		eyeMovementChart.data.labels = labels;
 		eyeMovementChart.data.datasets[0].data = eyeTrackingData.map(
 			(d) => d.blinkRate
 		);
 		eyeMovementChart.data.datasets[1].data = eyeTrackingData.map(
 			(d) => d.saccadeVelocity
 		);
+
 		eyeMovementChart.update();
 	}
 
-	// Update eye tracking metrics
-	updateEyeTrackingMetrics(data);
-
 	// Update combined metrics
 	updateCombinedMetrics();
+}
+
+// Render eye tracking visualization
+function renderEyeTrackingVisualization(data) {
+	const canvas = document.getElementById("eye-tracking-viz");
+	if (!canvas) return;
+
+	const ctx = canvas.getContext("2d");
+	const width = canvas.width;
+	const height = canvas.height;
+
+	// Clear canvas
+	ctx.clearRect(0, 0, width, height);
+
+	// Draw background grid
+	drawBackgroundGrid(ctx, width, height);
+
+	// Center coordinates
+	const centerX = width / 2;
+	const centerY = height / 2;
+
+	// Draw face outline
+	const faceRadius = width * 0.15;
+
+	// Apply head position offset
+	const headX = centerX + (data.headPosition?.x || 0) * 20;
+	const headY = centerY + (data.headPosition?.y || 0) * 20;
+
+	// Draw head with rotation
+	ctx.save();
+	ctx.translate(headX, headY);
+	ctx.rotate(((data.headDirection?.roll || 0) * Math.PI) / 180);
+
+	// Face outline
+	ctx.beginPath();
+	ctx.ellipse(0, 0, faceRadius, faceRadius * 1.3, 0, 0, Math.PI * 2);
+	ctx.strokeStyle = "#333";
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// Draw eyes
+	const eyeRadius = faceRadius * 0.2;
+	const eyeOffsetX = faceRadius * 0.4;
+	const eyeOffsetY = -faceRadius * 0.1;
+
+	// Left eye
+	ctx.beginPath();
+	ctx.ellipse(
+		-eyeOffsetX,
+		eyeOffsetY,
+		eyeRadius,
+		eyeRadius * 0.6,
+		0,
+		0,
+		Math.PI * 2
+	);
+	ctx.stroke();
+
+	// Right eye
+	ctx.beginPath();
+	ctx.ellipse(
+		eyeOffsetX,
+		eyeOffsetY,
+		eyeRadius,
+		eyeRadius * 0.6,
+		0,
+		0,
+		Math.PI * 2
+	);
+	ctx.stroke();
+
+	// Calculate pupil size based on dilation percentage
+	const pupilDilationPercent = data.pupilDilationPercent || 50;
+	const minPupilSize = eyeRadius * 0.3;
+	const maxPupilSize = eyeRadius * 0.8;
+	const pupilSize =
+		minPupilSize + (maxPupilSize - minPupilSize) * (pupilDilationPercent / 100);
+
+	// Calculate pupil positions based on gaze direction
+	const gazeX = data.gazeDirection?.x || 0;
+	const gazeY = data.gazeDirection?.y || 0;
+	const maxGazeOffset = eyeRadius * 0.5;
+
+	const leftPupilX = -eyeOffsetX + gazeX * maxGazeOffset;
+	const rightPupilX = eyeOffsetX + gazeX * maxGazeOffset;
+	const pupilY = eyeOffsetY + gazeY * maxGazeOffset;
+
+	// Draw pupils
+	ctx.fillStyle = "#000";
+	ctx.beginPath();
+	ctx.arc(leftPupilX, pupilY, pupilSize, 0, Math.PI * 2);
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.arc(rightPupilX, pupilY, pupilSize, 0, Math.PI * 2);
+	ctx.fill();
+
+	// Draw mouth based on head position (simple visual feedback)
+	const mouthWidth = faceRadius * 0.5;
+	const mouthHeight = faceRadius * 0.1;
+	const mouthY = faceRadius * 0.4;
+
+	ctx.beginPath();
+	ctx.moveTo(-mouthWidth / 2, mouthY);
+	ctx.quadraticCurveTo(0, mouthY + mouthHeight, mouthWidth / 2, mouthY);
+	ctx.stroke();
+
+	// Draw nose
+	ctx.beginPath();
+	ctx.moveTo(0, eyeOffsetY + eyeRadius * 2);
+	ctx.lineTo(-faceRadius * 0.1, faceRadius * 0.25);
+	ctx.lineTo(faceRadius * 0.1, faceRadius * 0.25);
+	ctx.closePath();
+	ctx.stroke();
+
+	ctx.restore();
+
+	// Draw gaze direction vector
+	const gazeLength = Math.min(width, height) * 0.2;
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY);
+	ctx.lineTo(centerX + gazeX * gazeLength, centerY + gazeY * gazeLength);
+	ctx.strokeStyle = "#4a6fa5";
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// Draw arrow head
+	const arrowSize = 10;
+	const angle = Math.atan2(gazeY, gazeX);
+	const arrowX = centerX + gazeX * gazeLength;
+	const arrowY = centerY + gazeY * gazeLength;
+
+	ctx.beginPath();
+	ctx.moveTo(arrowX, arrowY);
+	ctx.lineTo(
+		arrowX - arrowSize * Math.cos(angle - Math.PI / 6),
+		arrowY - arrowSize * Math.sin(angle - Math.PI / 6)
+	);
+	ctx.lineTo(
+		arrowX - arrowSize * Math.cos(angle + Math.PI / 6),
+		arrowY - arrowSize * Math.sin(angle + Math.PI / 6)
+	);
+	ctx.closePath();
+	ctx.fillStyle = "#4a6fa5";
+	ctx.fill();
+
+	// Draw reference coordinate system
+	drawCoordinateSystem(ctx, width, height);
+
+	// Draw gaze direction labels
+	drawGazeDirectionLabels(ctx, width, height);
+
+	// Update text metrics
+	updateEyeTrackingTextMetrics(data);
+}
+
+// Draw background grid
+function drawBackgroundGrid(ctx, width, height) {
+	ctx.strokeStyle = "#e0e0e0";
+	ctx.lineWidth = 0.5;
+
+	// Draw vertical grid lines
+	for (let x = 0; x <= width; x += 20) {
+		ctx.beginPath();
+		ctx.moveTo(x, 0);
+		ctx.lineTo(x, height);
+		ctx.stroke();
+	}
+
+	// Draw horizontal grid lines
+	for (let y = 0; y <= height; y += 20) {
+		ctx.beginPath();
+		ctx.moveTo(0, y);
+		ctx.lineTo(width, y);
+		ctx.stroke();
+	}
+
+	// Draw center lines with different color
+	ctx.strokeStyle = "#ccc";
+	ctx.lineWidth = 1;
+
+	// Vertical center line
+	ctx.beginPath();
+	ctx.moveTo(width / 2, 0);
+	ctx.lineTo(width / 2, height);
+	ctx.stroke();
+
+	// Horizontal center line
+	ctx.beginPath();
+	ctx.moveTo(0, height / 2);
+	ctx.lineTo(width, height / 2);
+	ctx.stroke();
+}
+
+// Draw coordinate system for reference
+function drawCoordinateSystem(ctx, width, height) {
+	const centerX = width / 2;
+	const centerY = height / 2;
+	const axisLength = 30;
+
+	// X-axis (red)
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY);
+	ctx.lineTo(centerX + axisLength, centerY);
+	ctx.strokeStyle = "#f44336";
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// X-axis arrow
+	ctx.beginPath();
+	ctx.moveTo(centerX + axisLength, centerY);
+	ctx.lineTo(centerX + axisLength - 5, centerY - 3);
+	ctx.lineTo(centerX + axisLength - 5, centerY + 3);
+	ctx.closePath();
+	ctx.fillStyle = "#f44336";
+	ctx.fill();
+
+	// X-axis label
+	ctx.fillStyle = "#f44336";
+	ctx.font = "10px Arial";
+	ctx.fillText("X", centerX + axisLength + 2, centerY + 10);
+
+	// Y-axis (green)
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY);
+	ctx.lineTo(centerX, centerY - axisLength);
+	ctx.strokeStyle = "#4caf50";
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// Y-axis arrow
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY - axisLength);
+	ctx.lineTo(centerX - 3, centerY - axisLength + 5);
+	ctx.lineTo(centerX + 3, centerY - axisLength + 5);
+	ctx.closePath();
+	ctx.fillStyle = "#4caf50";
+	ctx.fill();
+
+	// Y-axis label
+	ctx.fillStyle = "#4caf50";
+	ctx.font = "10px Arial";
+	ctx.fillText("Y", centerX + 5, centerY - axisLength - 2);
+}
+
+// Draw gaze direction labels around the edge
+function drawGazeDirectionLabels(ctx, width, height) {
+	const centerX = width / 2;
+	const centerY = height / 2;
+
+	ctx.font = "12px Arial";
+	ctx.fillStyle = "#555";
+	ctx.textAlign = "center";
+
+	// Top - "Up"
+	ctx.fillText("Up", centerX, 15);
+
+	// Bottom - "Down"
+	ctx.fillText("Down", centerX, height - 5);
+
+	// Left - "Left"
+	ctx.textAlign = "left";
+	ctx.fillText("Left", 5, centerY);
+
+	// Right - "Right"
+	ctx.textAlign = "right";
+	ctx.fillText("Right", width - 5, centerY);
+
+	// Reset text alignment
+	ctx.textAlign = "left";
+}
+
+// Update text metrics for eye tracking
+function updateEyeTrackingTextMetrics(data) {
+	// Update gaze direction text
+	const gazeDirectionEl = document.getElementById("gaze-direction");
+	if (gazeDirectionEl) {
+		const gazeX = data.gazeDirection?.x || 0;
+		const gazeY = data.gazeDirection?.y || 0;
+		gazeDirectionEl.textContent = `x: ${gazeX.toFixed(2)}, y: ${gazeY.toFixed(
+			2
+		)}`;
+	}
+
+	// Update gaze text description
+	const gazeTextEl = document.getElementById("gaze-text");
+	if (gazeTextEl) {
+		const gazeX = data.gazeDirection?.x || 0;
+		const gazeY = data.gazeDirection?.y || 0;
+
+		let gazeDescription = "Looking ";
+		if (Math.abs(gazeX) < 0.2 && Math.abs(gazeY) < 0.2) {
+			gazeDescription += "center";
+		} else {
+			if (gazeY < -0.3) gazeDescription += "up";
+			else if (gazeY > 0.3) gazeDescription += "down";
+
+			if (gazeX < -0.3)
+				gazeDescription += gazeY < -0.3 || gazeY > 0.3 ? " and left" : " left";
+			else if (gazeX > 0.3)
+				gazeDescription +=
+					gazeY < -0.3 || gazeY > 0.3 ? " and right" : " right";
+		}
+
+		gazeTextEl.textContent = gazeDescription;
+	}
+
+	// Update pupil diameter
+	const pupilDiameterEl = document.getElementById("pupil-diameter");
+	if (pupilDiameterEl) {
+		const diameter = data.pupilDiameter || 0;
+		const dilationPercent = data.pupilDilationPercent || 0;
+		pupilDiameterEl.textContent = `${diameter.toFixed(
+			1
+		)}px (${dilationPercent.toFixed(0)}%)`;
+	}
+
+	// Update head rotation
+	const headRotationEl = document.getElementById("head-rotation");
+	if (headRotationEl) {
+		const pitch = data.headDirection?.pitch || 0;
+		const yaw = data.headDirection?.yaw || 0;
+		const roll = data.headDirection?.roll || 0;
+		headRotationEl.textContent = `P: ${pitch.toFixed(1)}° Y: ${yaw.toFixed(
+			1
+		)}° R: ${roll.toFixed(1)}°`;
+	}
+
+	// Update head movement
+	const headMovementEl = document.getElementById("head-movement");
+	if (headMovementEl) {
+		const x = data.headPosition?.x || 0;
+		const y = data.headPosition?.y || 0;
+		const z = data.headPosition?.z || 0;
+		headMovementEl.textContent = `x: ${x.toFixed(2)}, y: ${y.toFixed(
+			2
+		)}, z: ${z.toFixed(2)}`;
+	}
+}
+
+// Update eye tracking metrics based on latest data
+function updateEyeTrackingMetrics(latestData) {
+	if (eyeTrackingData.length === 0) return;
+
+	// Calculate metrics
+	const blinkRateElement = document.getElementById("blink-rate");
+	const gazeDurationElement = document.getElementById("gaze-duration");
+	const fatigueIndexElement = document.getElementById("fatigue-index");
+
+	// Use the latest data for current metrics
+	blinkRateElement.textContent = `${latestData.blinkRate.toFixed(
+		1
+	)} blinks/min`;
+	gazeDurationElement.textContent = `${latestData.gazeDuration.toFixed(
+		1
+	)} seconds`;
+
+	// Calculate fatigue index based on blink rate and gaze duration
+	// Higher blink rate and shorter gaze duration indicate higher fatigue
+	const blinkFactor = Math.min(latestData.blinkRate / 20, 1); // Normalize to 0-1 (20 blinks/min is high)
+	const gazeFactor = Math.max(1 - latestData.gazeDuration / 5, 0); // Normalize to 0-1 (5+ seconds is good concentration)
+	const fatigueIndex = Math.round((blinkFactor * 0.6 + gazeFactor * 0.4) * 100);
+
+	fatigueIndexElement.textContent = fatigueIndex.toString();
+
+	// Set color based on fatigue level
+	if (fatigueIndex < 30) {
+		fatigueIndexElement.style.color = "#4caf50"; // Green - low fatigue
+	} else if (fatigueIndex < 70) {
+		fatigueIndexElement.style.color = "#ff9800"; // Orange - moderate fatigue
+	} else {
+		fatigueIndexElement.style.color = "#f44336"; // Red - high fatigue
+	}
 }
 
 // Process heart rate data from the mobile device
@@ -590,41 +1027,6 @@ function processHeartRateData(data) {
 
 	// Update combined metrics
 	updateCombinedMetrics();
-}
-
-// Update eye tracking metrics display
-function updateEyeTrackingMetrics(latestData) {
-	if (eyeTrackingData.length === 0) return;
-
-	// Calculate metrics
-	const blinkRateElement = document.getElementById("blink-rate");
-	const gazeDurationElement = document.getElementById("gaze-duration");
-	const fatigueIndexElement = document.getElementById("fatigue-index");
-
-	// Use the latest data for current metrics
-	blinkRateElement.textContent = `${latestData.blinkRate.toFixed(
-		1
-	)} blinks/min`;
-	gazeDurationElement.textContent = `${latestData.gazeDuration.toFixed(
-		1
-	)} seconds`;
-
-	// Calculate fatigue index based on blink rate and gaze duration
-	// Higher blink rate and shorter gaze duration indicate higher fatigue
-	const blinkFactor = Math.min(latestData.blinkRate / 20, 1); // Normalize to 0-1 (20 blinks/min is high)
-	const gazeFactor = Math.max(1 - latestData.gazeDuration / 5, 0); // Normalize to 0-1 (5+ seconds is good concentration)
-	const fatigueIndex = Math.round((blinkFactor * 0.6 + gazeFactor * 0.4) * 100);
-
-	fatigueIndexElement.textContent = fatigueIndex.toString();
-
-	// Set color based on fatigue level
-	if (fatigueIndex < 30) {
-		fatigueIndexElement.style.color = "#4caf50"; // Green - low fatigue
-	} else if (fatigueIndex < 70) {
-		fatigueIndexElement.style.color = "#ff9800"; // Orange - moderate fatigue
-	} else {
-		fatigueIndexElement.style.color = "#f44336"; // Red - high fatigue
-	}
 }
 
 // Update heart rate metrics display
@@ -837,44 +1239,92 @@ function addToFeedbackHistory(feedback) {
 
 // Reset all data when disconnecting
 function resetData() {
-	// Clear data arrays
+	// Clear eye tracking data
 	eyeTrackingData = [];
-	heartRateData = [];
+
+	// Reset eye tracking metrics
+	document.getElementById("blink-rate").textContent = "-- blinks/min";
+	document.getElementById("gaze-duration").textContent = "-- seconds";
+	document.getElementById("fatigue-index").textContent = "--";
+
+	// Reset heart rate metrics
+	document.getElementById("current-hr").textContent = "-- BPM";
+	document.getElementById("average-hr").textContent = "-- BPM";
+	document.getElementById("hr-variability").textContent = "--";
+
+	// Reset combined metrics
+	document.getElementById("stress-level").textContent = "--";
+	document.getElementById("attention-score").textContent = "--";
+
+	// Reset eye tracking detail metrics
+	document.getElementById("gaze-direction").textContent = "x: --, y: --";
+	document.getElementById("gaze-text").textContent = "Looking --";
+	document.getElementById("pupil-diameter").textContent = "-- px (--)";
+	document.getElementById("head-rotation").textContent = "P: --° Y: --° R: --°";
+	document.getElementById("head-movement").textContent = "x: --, y: --, z: --";
+
+	// Reset eye tracking visualization
+	const canvas = document.getElementById("eye-tracking-viz");
+	if (canvas) {
+		const ctx = canvas.getContext("2d");
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		// Draw empty grid
+		drawBackgroundGrid(ctx, canvas.width, canvas.height);
+		drawCoordinateSystem(ctx, canvas.width, canvas.height);
+		drawGazeDirectionLabels(ctx, canvas.width, canvas.height);
+
+		// Draw placeholder face
+		const centerX = canvas.width / 2;
+		const centerY = canvas.height / 2;
+		const faceRadius = canvas.width * 0.15;
+
+		// Face outline
+		ctx.beginPath();
+		ctx.ellipse(
+			centerX,
+			centerY,
+			faceRadius,
+			faceRadius * 1.3,
+			0,
+			0,
+			Math.PI * 2
+		);
+		ctx.strokeStyle = "#ccc";
+		ctx.lineWidth = 2;
+		ctx.stroke();
+
+		// Display "No data" text
+		ctx.font = "16px Arial";
+		ctx.fillStyle = "#999";
+		ctx.textAlign = "center";
+		ctx.fillText("No data available", centerX, centerY + faceRadius * 2);
+		ctx.textAlign = "left";
+	}
 
 	// Reset charts
 	if (eyeMovementChart) {
 		eyeMovementChart.data.labels = [];
-		eyeMovementChart.data.datasets.forEach((dataset) => {
-			dataset.data = [];
-		});
+		eyeMovementChart.data.datasets[0].data = [];
+		eyeMovementChart.data.datasets[1].data = [];
 		eyeMovementChart.update();
 	}
 
 	if (heartRateChart) {
 		heartRateChart.data.labels = [];
-		heartRateChart.data.datasets.forEach((dataset) => {
-			dataset.data = [];
-		});
+		heartRateChart.data.datasets[0].data = [];
 		heartRateChart.update();
 	}
 
 	if (combinedChart) {
 		combinedChart.data.labels = [];
-		combinedChart.data.datasets.forEach((dataset) => {
-			dataset.data = [];
-		});
+		combinedChart.data.datasets[0].data = [];
+		combinedChart.data.datasets[1].data = [];
 		combinedChart.update();
 	}
 
-	// Reset metrics displays
-	document.getElementById("blink-rate").textContent = "-- blinks/min";
-	document.getElementById("gaze-duration").textContent = "-- seconds";
-	document.getElementById("fatigue-index").textContent = "--";
-	document.getElementById("current-hr").textContent = "-- BPM";
-	document.getElementById("average-hr").textContent = "-- BPM";
-	document.getElementById("hr-variability").textContent = "--";
-	document.getElementById("stress-level").textContent = "--";
-	document.getElementById("attention-score").textContent = "--";
+	// Clear heart rate data
+	heartRateData = [];
 }
 
 // Update the connection status display

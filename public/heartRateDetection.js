@@ -86,6 +86,7 @@ async function detectHeartRate(videoElement) {
 	// Ensure face-api is ready
 	const isReady = await ensureHeartRateFaceApiIsReady();
 	if (!isReady) {
+		console.warn("Face API not ready for heart rate detection");
 		return null; // Can't process without face-api
 	}
 
@@ -102,15 +103,38 @@ async function detectHeartRate(videoElement) {
 		// Draw the current video frame on the canvas
 		context.drawImage(videoElement, 0, 0, width, height);
 
+		// Log video dimensions for debugging
+		console.log(`Video dimensions: ${width}x${height}`);
+
+		// Try with different face detection options for better detection
+		const options = new faceapi.TinyFaceDetectorOptions({
+			inputSize: 320, // Lower input size may be faster and more reliable on mobile
+			scoreThreshold: 0.3, // Lower threshold to detect faces more easily
+		});
+
+		console.log("Attempting face detection for heart rate analysis...");
+
 		// Face detection to locate the region of interest (ROI)
 		const detections = await faceapi
-			.detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
+			.detectSingleFace(videoElement, options)
 			.withFaceLandmarks();
 
 		if (!detections) {
 			console.log("No face detected for heart rate analysis");
+			// For debugging, try to capture what's happening
+			const imageData = context.getImageData(0, 0, width, height);
+			const brightness = calculateAverageBrightness(imageData.data);
+			console.log(`Image brightness: ${brightness.toFixed(2)}`);
+
+			if (brightness < 40) {
+				console.warn(
+					"Image appears too dark. Try improving lighting conditions."
+				);
+			}
 			return null;
 		}
+
+		console.log("Face detected for heart rate analysis!");
 
 		const {
 			x,
@@ -118,6 +142,11 @@ async function detectHeartRate(videoElement) {
 			width: faceWidth,
 			height: faceHeight,
 		} = detections.detection.box;
+
+		// Log face detection coordinates for debugging
+		console.log(
+			`Face detected at: x=${x}, y=${y}, width=${faceWidth}, height=${faceHeight}`
+		);
 
 		// Define ROI (forehead region)
 		const roi = {
@@ -148,6 +177,13 @@ async function detectHeartRate(videoElement) {
 		const avgG = totalG / pixelCount;
 		const avgB = totalB / pixelCount;
 
+		// Log average color values for debugging
+		console.log(
+			`ROI average RGB: R=${avgR.toFixed(2)}, G=${avgG.toFixed(
+				2
+			)}, B=${avgB.toFixed(2)}`
+		);
+
 		// Store the signal values
 		rgbSignals.r.push(avgR);
 		rgbSignals.g.push(avgG);
@@ -172,6 +208,7 @@ async function detectHeartRate(videoElement) {
 			const heartRate = calculateHeartRate(rgbSignals.g, timestamps);
 
 			if (heartRate) {
+				console.log(`Calculated heart rate: ${heartRate.toFixed(1)} BPM`);
 				lastHeartRates.push(heartRate);
 
 				// Keep only the last 5 heart rate values
@@ -188,7 +225,13 @@ async function detectHeartRate(videoElement) {
 					bpm: avgHeartRate,
 					confidence: calculateConfidence(lastHeartRates),
 				};
+			} else {
+				console.log("Failed to calculate heart rate from the collected signal");
 			}
+		} else {
+			console.log(
+				`Not enough data points yet: ${rgbSignals.g.length}/4 minimum required`
+			);
 		}
 
 		return null;
@@ -298,4 +341,19 @@ function calculateConfidence(heartRates) {
 	confidence = Math.min(1, confidence); // Clamp to [0, 1]
 
 	return confidence;
+}
+
+// Helper function to calculate the average brightness of an image
+function calculateAverageBrightness(pixels) {
+	let totalBrightness = 0;
+	let pixelCount = 0;
+
+	for (let i = 0; i < pixels.length; i += 4) {
+		// Calculate brightness as average of RGB
+		const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+		totalBrightness += brightness;
+		pixelCount++;
+	}
+
+	return totalBrightness / pixelCount;
 }

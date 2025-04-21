@@ -118,6 +118,32 @@
 					</div>
 				</div>
 
+				<div class="panel" id="eye-tracking-detail-panel">
+					<h3>Live Eye Tracking Visualization</h3>
+					<div class="visualization-container">
+						<canvas id="eye-tracking-viz" width="400" height="300"></canvas>
+					</div>
+					<div class="eye-metrics-grid">
+						<div class="metric-box">
+							<h4>Gaze Direction</h4>
+							<div id="gaze-direction">x: --, y: --</div>
+							<div id="gaze-text">Looking --</div>
+						</div>
+						<div class="metric-box">
+							<h4>Pupil Diameter</h4>
+							<div id="pupil-diameter">-- px (--)</div>
+						</div>
+						<div class="metric-box">
+							<h4>Head Rotation</h4>
+							<div id="head-rotation">P: --° Y: --° R: --°</div>
+						</div>
+						<div class="metric-box">
+							<h4>Head Movement</h4>
+							<div id="head-movement">x: --, y: --, z: --</div>
+						</div>
+					</div>
+				</div>
+
 				<div class="panel" id="heart-rate-panel">
 					<h3>Heart Rate Monitoring</h3>
 					<div class="chart-container">
