@@ -5,14 +5,6 @@
  * @returns {WebSocket} The WebSocket connection
  */
 function initializeWebSocket() {
-	// Skip WebSocket initialization when running on Vercel domain
-	if (window.location.hostname.includes("vercel.app")) {
-		console.log(
-			"Running on Vercel - WebSockets not supported, will use Socket.io"
-		);
-		return null;
-	}
-
 	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 	const wsUrl = `${protocol}//${window.location.host}/ws`;
 

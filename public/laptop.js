@@ -17,17 +17,6 @@ function initializeLaptopInterface() {
 	// Try to establish WebSocket connection first
 	try {
 		ws = initializeWebSocket();
-
-		// If WebSocket initialization returned null, fall back to Socket.io immediately
-		if (ws === null) {
-			console.log("WebSocket not available, falling back to Socket.io");
-			useWebSocket = false;
-			fallbackToSocketIO();
-			setupUIEventListeners();
-			setupCharts();
-			return;
-		}
-
 		setupLaptopWebSocketHandlers(ws, {
 			onAvailableMobiles: displayAvailableMobiles,
 			onMobileConnected: addAvailableMobile,

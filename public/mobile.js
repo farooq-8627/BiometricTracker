@@ -25,19 +25,6 @@ function initializeMobileInterface() {
 	// Try to establish WebSocket connection first
 	try {
 		ws = initializeWebSocket();
-
-		// If WebSocket initialization returned null, fall back to Socket.io immediately
-		if (ws === null) {
-			console.log("WebSocket not available, falling back to Socket.io");
-			useWebSocket = false;
-			fallbackToSocketIO();
-			setupUIEventListeners();
-
-			// Load face-api.js models
-			loadModels();
-			return;
-		}
-
 		setupMobileWebSocketHandlers(ws, {
 			onAvailableLaptops: displayAvailableLaptops,
 			onLaptopDisconnected: (laptopId) => {
