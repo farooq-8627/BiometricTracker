@@ -47,14 +47,32 @@ async function ensureHeartRateFaceApiIsReady() {
 			return true;
 		}
 
-		// Fall back to CDN models if not loaded
-		const modelPath = "https://justadudewhohacks.github.io/face-api.js/models";
+		console.log("Loading face detection models for heart rate...");
 
-		// Load models if not already loaded
-		await Promise.all([
-			faceapi.nets.tinyFaceDetector.load(modelPath),
-			faceapi.nets.faceLandmark68Net.load(modelPath),
-		]);
+		// Try local models first (preferred)
+		const localModelPath = "/models";
+		try {
+			console.log("Attempting to load models from local path:", localModelPath);
+			await Promise.all([
+				faceapi.nets.tinyFaceDetector.load(localModelPath),
+				faceapi.nets.faceLandmark68Net.load(localModelPath),
+			]);
+			console.log("Successfully loaded models from local path");
+			heartRateFaceApiReady = true;
+			return true;
+		} catch (localError) {
+			console.warn("Failed to load local models:", localError);
+
+			// Fall back to CDN models if local models fail
+			const cdnModelPath =
+				"https://justadudewhohacks.github.io/face-api.js/models";
+			console.log("Attempting to load models from CDN:", cdnModelPath);
+			await Promise.all([
+				faceapi.nets.tinyFaceDetector.load(cdnModelPath),
+				faceapi.nets.faceLandmark68Net.load(cdnModelPath),
+			]);
+			console.log("Successfully loaded models from CDN");
+		}
 
 		console.log("Face API models loaded successfully for heart rate detection");
 		heartRateFaceApiReady = true;
@@ -70,20 +88,31 @@ async function ensureHeartRateFaceApiIsReady() {
 
 // Process video frame for heart rate detection
 async function detectHeartRate(videoElement) {
-	if (!videoElement) return null;
+	if (!videoElement) {
+		console.error("No video element provided for heart rate detection");
+		return null;
+	}
+
+	// Check if video is playing
+	if (videoElement.paused || videoElement.ended) {
+		console.warn("Video is paused or ended, cannot detect heart rate");
+		return null;
+	}
 
 	const now = Date.now();
 
 	// Only process every interval ms to avoid performance issues
 	if (now - lastProcessedTime < processingInterval) {
+		console.log("Skipping heart rate detection due to processing interval");
 		return lastHeartRates.length > 0
-			? { bpm: lastHeartRates[lastHeartRates.length - 1] }
+			? { bpm: lastHeartRates[lastHeartRates.length - 1], confidence: 0.5 }
 			: null;
 	}
 
 	lastProcessedTime = now;
 
 	// Ensure face-api is ready
+	console.log("Ensuring face-api is ready for heart rate detection");
 	const isReady = await ensureHeartRateFaceApiIsReady();
 	if (!isReady) {
 		console.warn("Face API not ready for heart rate detection");
@@ -91,11 +120,23 @@ async function detectHeartRate(videoElement) {
 	}
 
 	try {
+		console.log("Creating canvas for heart rate detection");
 		// Create a temporary canvas to extract pixel data
 		const canvas = document.createElement("canvas");
 		const context = canvas.getContext("2d");
 		const width = videoElement.videoWidth;
 		const height = videoElement.videoHeight;
+
+		// Check for valid video dimensions
+		if (width <= 0 || height <= 0) {
+			console.error(
+				"Invalid video dimensions for heart rate detection:",
+				width,
+				"x",
+				height
+			);
+			return null;
+		}
 
 		canvas.width = width;
 		canvas.height = height;
@@ -105,6 +146,18 @@ async function detectHeartRate(videoElement) {
 
 		// Log video dimensions for debugging
 		console.log(`Video dimensions: ${width}x${height}`);
+
+		// Check image brightness
+		const imageData = context.getImageData(0, 0, width, height);
+		const brightness = calculateAverageBrightness(imageData.data);
+		console.log(`Image brightness: ${brightness.toFixed(2)}`);
+
+		if (brightness < 40) {
+			console.warn(
+				"Image appears too dark. Try improving lighting conditions."
+			);
+			return null;
+		}
 
 		// Try with different face detection options for better detection
 		const options = new faceapi.TinyFaceDetectorOptions({
@@ -121,16 +174,6 @@ async function detectHeartRate(videoElement) {
 
 		if (!detections) {
 			console.log("No face detected for heart rate analysis");
-			// For debugging, try to capture what's happening
-			const imageData = context.getImageData(0, 0, width, height);
-			const brightness = calculateAverageBrightness(imageData.data);
-			console.log(`Image brightness: ${brightness.toFixed(2)}`);
-
-			if (brightness < 40) {
-				console.warn(
-					"Image appears too dark. Try improving lighting conditions."
-				);
-			}
 			return null;
 		}
 
@@ -150,15 +193,31 @@ async function detectHeartRate(videoElement) {
 
 		// Define ROI (forehead region)
 		const roi = {
-			x: x + faceWidth * 0.2,
-			y: y + faceHeight * 0.1,
-			width: faceWidth * 0.6,
-			height: faceHeight * 0.15,
+			x: Math.max(0, Math.floor(x + faceWidth * 0.2)),
+			y: Math.max(0, Math.floor(y + faceHeight * 0.1)),
+			width: Math.floor(faceWidth * 0.6),
+			height: Math.floor(faceHeight * 0.15),
 		};
 
+		// Ensure ROI is within image boundaries
+		roi.width = Math.min(roi.width, width - roi.x);
+		roi.height = Math.min(roi.height, height - roi.y);
+
+		if (roi.width <= 0 || roi.height <= 0) {
+			console.error("Invalid ROI dimensions:", roi);
+			return null;
+		}
+
+		console.log("Extracting ROI for heart rate detection:", roi);
+
 		// Extract pixel data from ROI
-		const imageData = context.getImageData(roi.x, roi.y, roi.width, roi.height);
-		const pixels = imageData.data;
+		const roiImageData = context.getImageData(
+			roi.x,
+			roi.y,
+			roi.width,
+			roi.height
+		);
+		const pixels = roiImageData.data;
 
 		// Calculate average RGB values in the ROI
 		let totalR = 0,
@@ -171,6 +230,11 @@ async function detectHeartRate(videoElement) {
 			totalG += pixels[i + 1]; // Green
 			totalB += pixels[i + 2]; // Blue
 			pixelCount++;
+		}
+
+		if (pixelCount === 0) {
+			console.error("No pixels found in ROI");
+			return null;
 		}
 
 		const avgR = totalR / pixelCount;
@@ -202,9 +266,13 @@ async function detectHeartRate(videoElement) {
 			timestamps = timestamps.slice(startIndex);
 		}
 
+		// Log current signal length
+		console.log(`Heart rate signal points collected: ${rgbSignals.g.length}`);
+
 		// If we have enough data points, calculate heart rate
 		if (rgbSignals.g.length >= 4) {
 			// Need at least 4 data points for analysis
+			console.log("Calculating heart rate from collected signal...");
 			const heartRate = calculateHeartRate(rgbSignals.g, timestamps);
 
 			if (heartRate) {
@@ -221,9 +289,16 @@ async function detectHeartRate(videoElement) {
 					lastHeartRates.reduce((sum, rate) => sum + rate, 0) /
 					lastHeartRates.length;
 
+				const confidence = calculateConfidence(lastHeartRates);
+				console.log(
+					`Average heart rate: ${avgHeartRate.toFixed(
+						1
+					)} BPM, confidence: ${confidence.toFixed(2)}`
+				);
+
 				return {
 					bpm: avgHeartRate,
-					confidence: calculateConfidence(lastHeartRates),
+					confidence: confidence,
 				};
 			} else {
 				console.log("Failed to calculate heart rate from the collected signal");

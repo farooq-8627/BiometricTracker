@@ -180,6 +180,10 @@ function sanitizeEyeTrackingData(trackingData) {
 	if (!trackingData) {
 		return {
 			blinkRate: 0,
+			blinkCount: 0,
+			isBlinking: false,
+			blinkJustDetected: false,
+			eyeAspectRatio: 0.3,
 			saccadeVelocity: 0,
 			gazeDuration: 0,
 			pupilDilation: 0,
@@ -196,6 +200,18 @@ function sanitizeEyeTrackingData(trackingData) {
 	// Ensure basic eye tracking metrics exist
 	sanitized.blinkRate =
 		typeof sanitized.blinkRate === "number" ? sanitized.blinkRate : 0;
+	sanitized.blinkCount =
+		typeof sanitized.blinkCount === "number" ? sanitized.blinkCount : 0;
+	sanitized.isBlinking =
+		typeof sanitized.isBlinking === "boolean" ? sanitized.isBlinking : false;
+	sanitized.blinkJustDetected =
+		typeof sanitized.blinkJustDetected === "boolean"
+			? sanitized.blinkJustDetected
+			: false;
+	sanitized.eyeAspectRatio =
+		typeof sanitized.eyeAspectRatio === "number"
+			? sanitized.eyeAspectRatio
+			: 0.3;
 	sanitized.saccadeVelocity =
 		typeof sanitized.saccadeVelocity === "number"
 			? sanitized.saccadeVelocity
@@ -244,16 +260,35 @@ function sanitizeEyeTrackingData(trackingData) {
 }
 
 function handleHeartRateData(ws, data) {
-	if (data.targetId) {
-		const targetWs = wsClients.laptop.get(data.targetId);
+	console.log(`Processing heart rate data from ${ws.id} to ${data.targetId}`);
 
-		if (targetWs) {
-			sendToWebSocket(targetWs, {
-				type: "heart_rate_update",
-				sourceId: ws.id,
-				data: data.heartRateData,
-			});
-		}
+	if (!data.targetId) {
+		console.error("Missing targetId in heart rate data");
+		return;
+	}
+
+	if (!data.heartRateData) {
+		console.error("Missing heartRateData in message");
+		return;
+	}
+
+	const targetWs = wsClients.laptop.get(data.targetId);
+
+	if (targetWs) {
+		console.log(
+			`Sending heart rate data to laptop ${data.targetId}: ${JSON.stringify(
+				data.heartRateData
+			)}`
+		);
+		sendToWebSocket(targetWs, {
+			type: "heart_rate_update",
+			sourceId: ws.id,
+			data: data.heartRateData,
+		});
+	} else {
+		console.error(
+			`Target laptop ${data.targetId} not found for heart rate data`
+		);
 	}
 }
 
