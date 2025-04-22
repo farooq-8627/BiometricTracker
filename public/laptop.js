@@ -1393,7 +1393,12 @@ window.addEventListener("beforeunload", () => {
 
 // Process emotion data received from mobile device
 function processEmotionData(data) {
-	if (!data) return;
+	console.log("processEmotionData called with data:", JSON.stringify(data));
+
+	if (!data) {
+		console.error("No emotion data received!");
+		return;
+	}
 
 	// Add timestamp if not present
 	const timestamp = data.timestamp || Date.now();
@@ -1402,6 +1407,8 @@ function processEmotionData(data) {
 		timestamp,
 	};
 
+	console.log("Processing emotion data:", JSON.stringify(emotionWithTimestamp));
+
 	// Add to emotion data array and limit size
 	emotionData.push(emotionWithTimestamp);
 	if (emotionData.length > 100) {
@@ -1409,18 +1416,39 @@ function processEmotionData(data) {
 	}
 
 	// Update the emotion chart
+	console.log("Updating emotion chart with data");
 	updateEmotionChart(emotionWithTimestamp);
 
 	// Update the emotion metrics display
+	console.log("Updating emotion metrics display");
 	updateEmotionMetrics(emotionWithTimestamp);
 
 	// Also update combined metrics with emotional data
+	console.log("Updating combined metrics");
 	updateCombinedMetrics();
+
+	console.log("Processed emotion data successfully");
 }
 
 // Update the emotion chart with new data
 function updateEmotionChart(latestData) {
-	if (!emotionChart) return;
+	console.log(
+		"updateEmotionChart called with data:",
+		JSON.stringify(latestData)
+	);
+
+	if (!emotionChart) {
+		console.error("Emotion chart not initialized!");
+
+		// Try to check if the element exists
+		const emotionChartElement = document.getElementById("emotion-chart");
+		if (!emotionChartElement) {
+			console.error("Element with ID 'emotion-chart' not found in DOM!");
+		} else {
+			console.log("Element exists but chart not initialized");
+		}
+		return;
+	}
 
 	// Update radar chart with emotion values
 	emotionChart.data.datasets[0].data = [
@@ -1444,16 +1472,31 @@ function updateEmotionChart(latestData) {
 		emotionChart.options.plugins.title.text = `Emotion Analysis: ${dominantEmotion} (${confidencePercent}%)`;
 	}
 
-	emotionChart.update();
+	try {
+		emotionChart.update();
+		console.log("Emotion chart updated successfully");
+	} catch (error) {
+		console.error("Error updating emotion chart:", error);
+	}
 }
 
 // Update displayed emotion metrics
 function updateEmotionMetrics(latestData) {
-	if (!latestData) return;
+	console.log(
+		"updateEmotionMetrics called with data:",
+		JSON.stringify(latestData)
+	);
+
+	if (!latestData) {
+		console.error("No emotion data provided to updateEmotionMetrics");
+		return;
+	}
 
 	// Update current emotion display
 	const currentEmotionElement = document.getElementById("current-emotion");
-	if (currentEmotionElement && latestData.dominant) {
+	if (!currentEmotionElement) {
+		console.error("Element with ID 'current-emotion' not found in DOM!");
+	} else if (latestData.dominant) {
 		// Capitalize first letter of emotion
 		const formattedEmotion =
 			latestData.dominant.charAt(0).toUpperCase() +
@@ -1464,13 +1507,17 @@ function updateEmotionMetrics(latestData) {
 		// Add color coding for emotions
 		currentEmotionElement.className = ""; // Reset classes
 		currentEmotionElement.classList.add("emotion-" + latestData.dominant);
+		console.log("Updated current emotion to:", formattedEmotion);
 	}
 
 	// Update confidence display
 	const confidenceElement = document.getElementById("emotion-confidence");
-	if (confidenceElement) {
+	if (!confidenceElement) {
+		console.error("Element with ID 'emotion-confidence' not found in DOM!");
+	} else {
 		const confidencePercent = Math.round((latestData.dominantScore || 0) * 100);
 		confidenceElement.textContent = `${confidencePercent}%`;
+		console.log("Updated emotion confidence to:", confidencePercent + "%");
 	}
 }
 

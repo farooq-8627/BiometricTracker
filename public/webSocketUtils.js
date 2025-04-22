@@ -106,6 +106,21 @@ function sendHeartRateData(ws, targetId, heartRateData) {
 }
 
 /**
+ * Send emotion data
+ * @param {WebSocket} ws - The WebSocket connection
+ * @param {string} targetId - The ID of the target device
+ * @param {Object} emotionData - The emotion data
+ */
+function sendEmotionData(ws, targetId, emotionData) {
+	console.log("Sending emotion data via WebSocket:", targetId, emotionData);
+	sendWebSocketMessage(ws, {
+		type: "emotion_data",
+		targetId: targetId,
+		emotionData: emotionData,
+	});
+}
+
+/**
  * Send biofeedback data
  * @param {WebSocket} ws - The WebSocket connection
  * @param {string} targetId - The ID of the target device
@@ -173,6 +188,7 @@ function setupLaptopWebSocketHandlers(ws, handlers) {
 	ws.onmessage = (event) => {
 		try {
 			const data = JSON.parse(event.data);
+			console.log("Laptop received WebSocket message:", data.type, data);
 
 			switch (data.type) {
 				case "available_mobiles":
@@ -208,6 +224,12 @@ function setupLaptopWebSocketHandlers(ws, handlers) {
 				case "heart_rate_update":
 					if (handlers.onHeartRateUpdate) {
 						handlers.onHeartRateUpdate(data.sourceId, data.data);
+					}
+					break;
+				case "emotion_update":
+					console.log("Received emotion update:", data);
+					if (handlers.onEmotionUpdate) {
+						handlers.onEmotionUpdate(data.sourceId, data.data);
 					}
 					break;
 				default:
