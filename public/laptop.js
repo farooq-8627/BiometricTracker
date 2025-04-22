@@ -5,8 +5,10 @@ let pairedMobileId = null;
 let eyeMovementChart = null;
 let heartRateChart = null;
 let combinedChart = null;
+let emotionChart = null; // New chart for emotions
 let eyeTrackingData = [];
 let heartRateData = [];
+let emotionData = []; // New array for emotion data
 let feedbackHistory = [];
 let useWebSocket = false; // Flag to determine which connection to use
 
@@ -63,6 +65,12 @@ function initializeLaptopInterface() {
 				console.log("Received heart rate data:", { sourceId, data });
 				if (sourceId === pairedMobileId) {
 					processHeartRateData(data);
+				}
+			},
+			onEmotionUpdate: (sourceId, data) => {
+				console.log("Received emotion data:", { sourceId, data });
+				if (sourceId === pairedMobileId) {
+					processEmotionData(data);
 				}
 			},
 		});
@@ -237,6 +245,16 @@ function setupSocketListeners() {
 		// Process and display heart rate data
 		if (data.sourceId === pairedMobileId) {
 			processHeartRateData(data.data);
+		}
+	});
+
+	// Add emotion update handler
+	socket.on("emotion_update", (data) => {
+		console.log("Received emotion data:", data);
+
+		// Process and display emotion data
+		if (data.sourceId === pairedMobileId) {
+			processEmotionData(data.data);
 		}
 	});
 }
@@ -421,6 +439,61 @@ function setupCharts() {
 					},
 				},
 			},
+		},
+	});
+
+	// Set up emotion chart
+	const emotionChartCtx = document
+		.getElementById("emotion-chart")
+		.getContext("2d");
+
+	emotionChart = new Chart(emotionChartCtx, {
+		type: "radar",
+		data: {
+			labels: [
+				"Happy",
+				"Sad",
+				"Angry",
+				"Fearful",
+				"Disgusted",
+				"Surprised",
+				"Neutral",
+			],
+			datasets: [
+				{
+					label: "Emotion Levels",
+					data: [0, 0, 0, 0, 0, 0, 0],
+					backgroundColor: "rgba(153, 102, 255, 0.2)",
+					borderColor: "rgba(153, 102, 255, 1)",
+					borderWidth: 2,
+					pointBackgroundColor: "rgba(153, 102, 255, 1)",
+					pointBorderColor: "#fff",
+					pointHoverBackgroundColor: "#fff",
+					pointHoverBorderColor: "rgba(153, 102, 255, 1)",
+				},
+			],
+		},
+		options: {
+			scales: {
+				r: {
+					beginAtZero: true,
+					max: 1,
+				},
+			},
+			plugins: {
+				title: {
+					display: true,
+					text: "Emotion Analysis",
+					font: {
+						size: 16,
+					},
+				},
+				legend: {
+					display: false,
+				},
+			},
+			responsive: true,
+			maintainAspectRatio: false,
 		},
 	});
 }
@@ -1237,72 +1310,13 @@ function addToFeedbackHistory(feedback) {
 	historyList.scrollTop = historyList.scrollHeight;
 }
 
-// Reset all data when disconnecting
+// Reset all data including emotion data
 function resetData() {
-	// Clear eye tracking data
 	eyeTrackingData = [];
+	heartRateData = [];
+	emotionData = []; // Reset emotion data
 
-	// Reset eye tracking metrics
-	document.getElementById("blink-rate").textContent = "-- blinks/min";
-	document.getElementById("gaze-duration").textContent = "-- seconds";
-	document.getElementById("fatigue-index").textContent = "--";
-
-	// Reset heart rate metrics
-	document.getElementById("current-hr").textContent = "-- BPM";
-	document.getElementById("average-hr").textContent = "-- BPM";
-	document.getElementById("hr-variability").textContent = "--";
-
-	// Reset combined metrics
-	document.getElementById("stress-level").textContent = "--";
-	document.getElementById("attention-score").textContent = "--";
-
-	// Reset eye tracking detail metrics
-	document.getElementById("gaze-direction").textContent = "x: --, y: --";
-	document.getElementById("gaze-text").textContent = "Looking --";
-	document.getElementById("pupil-diameter").textContent = "-- px (--)";
-	document.getElementById("head-rotation").textContent = "P: --° Y: --° R: --°";
-	document.getElementById("head-movement").textContent = "x: --, y: --, z: --";
-
-	// Reset eye tracking visualization
-	const canvas = document.getElementById("eye-tracking-viz");
-	if (canvas) {
-		const ctx = canvas.getContext("2d");
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-		// Draw empty grid
-		drawBackgroundGrid(ctx, canvas.width, canvas.height);
-		drawCoordinateSystem(ctx, canvas.width, canvas.height);
-		drawGazeDirectionLabels(ctx, canvas.width, canvas.height);
-
-		// Draw placeholder face
-		const centerX = canvas.width / 2;
-		const centerY = canvas.height / 2;
-		const faceRadius = canvas.width * 0.15;
-
-		// Face outline
-		ctx.beginPath();
-		ctx.ellipse(
-			centerX,
-			centerY,
-			faceRadius,
-			faceRadius * 1.3,
-			0,
-			0,
-			Math.PI * 2
-		);
-		ctx.strokeStyle = "#ccc";
-		ctx.lineWidth = 2;
-		ctx.stroke();
-
-		// Display "No data" text
-		ctx.font = "16px Arial";
-		ctx.fillStyle = "#999";
-		ctx.textAlign = "center";
-		ctx.fillText("No data available", centerX, centerY + faceRadius * 2);
-		ctx.textAlign = "left";
-	}
-
-	// Reset charts
+	// Reset charts and visualizations
 	if (eyeMovementChart) {
 		eyeMovementChart.data.labels = [];
 		eyeMovementChart.data.datasets[0].data = [];
@@ -1316,6 +1330,12 @@ function resetData() {
 		heartRateChart.update();
 	}
 
+	if (emotionChart) {
+		emotionChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0];
+		emotionChart.options.plugins.title.text = "Emotion Analysis";
+		emotionChart.update();
+	}
+
 	if (combinedChart) {
 		combinedChart.data.labels = [];
 		combinedChart.data.datasets[0].data = [];
@@ -1323,8 +1343,25 @@ function resetData() {
 		combinedChart.update();
 	}
 
-	// Clear heart rate data
-	heartRateData = [];
+	// Clear eye tracking visualization
+	initializeEyeTrackingVisualization();
+
+	// Reset metrics
+	document.getElementById("blink-rate").textContent = "-- blinks/min";
+	document.getElementById("gaze-duration").textContent = "-- seconds";
+	document.getElementById("fatigue-index").textContent = "--";
+	document.getElementById("current-hr").textContent = "-- BPM";
+	document.getElementById("average-hr").textContent = "-- BPM";
+	document.getElementById("hr-variability").textContent = "--";
+	document.getElementById("current-emotion").textContent = "--";
+	document.getElementById("emotion-confidence").textContent = "--%";
+	document.getElementById("stress-level").textContent = "--";
+	document.getElementById("attention-score").textContent = "--";
+	document.getElementById("gaze-direction").textContent = "x: --, y: --";
+	document.getElementById("gaze-text").textContent = "Looking --";
+	document.getElementById("pupil-diameter").textContent = "-- px (--)";
+	document.getElementById("head-rotation").textContent = "P: --° Y: --° R: --°";
+	document.getElementById("head-movement").textContent = "x: --, y: --, z: --";
 }
 
 // Update the connection status display
@@ -1353,3 +1390,180 @@ window.addEventListener("beforeunload", () => {
 		ws.close();
 	}
 });
+
+// Process emotion data received from mobile device
+function processEmotionData(data) {
+	if (!data) return;
+
+	// Add timestamp if not present
+	const timestamp = data.timestamp || Date.now();
+	const emotionWithTimestamp = {
+		...data,
+		timestamp,
+	};
+
+	// Add to emotion data array and limit size
+	emotionData.push(emotionWithTimestamp);
+	if (emotionData.length > 100) {
+		emotionData.shift();
+	}
+
+	// Update the emotion chart
+	updateEmotionChart(emotionWithTimestamp);
+
+	// Update the emotion metrics display
+	updateEmotionMetrics(emotionWithTimestamp);
+
+	// Also update combined metrics with emotional data
+	updateCombinedMetrics();
+}
+
+// Update the emotion chart with new data
+function updateEmotionChart(latestData) {
+	if (!emotionChart) return;
+
+	// Update radar chart with emotion values
+	emotionChart.data.datasets[0].data = [
+		latestData.happy || 0,
+		latestData.sad || 0,
+		latestData.angry || 0,
+		latestData.fearful || 0,
+		latestData.disgusted || 0,
+		latestData.surprised || 0,
+		latestData.neutral || 0,
+	];
+
+	// Update chart title to show dominant emotion
+	if (latestData.dominant) {
+		const dominantEmotion =
+			latestData.dominant.charAt(0).toUpperCase() +
+			latestData.dominant.slice(1);
+
+		const confidencePercent = Math.round((latestData.dominantScore || 0) * 100);
+
+		emotionChart.options.plugins.title.text = `Emotion Analysis: ${dominantEmotion} (${confidencePercent}%)`;
+	}
+
+	emotionChart.update();
+}
+
+// Update displayed emotion metrics
+function updateEmotionMetrics(latestData) {
+	if (!latestData) return;
+
+	// Update current emotion display
+	const currentEmotionElement = document.getElementById("current-emotion");
+	if (currentEmotionElement && latestData.dominant) {
+		// Capitalize first letter of emotion
+		const formattedEmotion =
+			latestData.dominant.charAt(0).toUpperCase() +
+			latestData.dominant.slice(1);
+
+		currentEmotionElement.textContent = formattedEmotion;
+
+		// Add color coding for emotions
+		currentEmotionElement.className = ""; // Reset classes
+		currentEmotionElement.classList.add("emotion-" + latestData.dominant);
+	}
+
+	// Update confidence display
+	const confidenceElement = document.getElementById("emotion-confidence");
+	if (confidenceElement) {
+		const confidencePercent = Math.round((latestData.dominantScore || 0) * 100);
+		confidenceElement.textContent = `${confidencePercent}%`;
+	}
+}
+
+// Update combined metrics to include emotion data
+function updateCombinedMetrics() {
+	// ... existing code ...
+
+	// Add stress level calculation based on emotions
+	const stressLevelElement = document.getElementById("stress-level");
+	if (stressLevelElement && emotionData.length > 0) {
+		// Get latest emotion data
+		const latestEmotion = emotionData[emotionData.length - 1];
+
+		// Calculate stress based on negative emotions and heart rate
+		let emotionalStress = 0;
+		if (latestEmotion) {
+			// Weight negative emotions more heavily
+			emotionalStress =
+				(latestEmotion.angry || 0) * 1.5 +
+				(latestEmotion.fearful || 0) * 1.2 +
+				(latestEmotion.sad || 0) * 0.8 +
+				(latestEmotion.disgusted || 0) * 0.7;
+
+			// Reduce stress if happy/neutral
+			emotionalStress -= (latestEmotion.happy || 0) * 0.5;
+			emotionalStress = Math.max(0, Math.min(10, emotionalStress * 5));
+		}
+
+		// Combine with physical stress from heart rate and eye movement
+		const heartRateStress = calculateHeartRateStress();
+		const eyeStress = calculateEyeStress();
+
+		const overallStress =
+			emotionalStress * 0.4 + heartRateStress * 0.3 + eyeStress * 0.3;
+		const stressLevel = Math.min(10, Math.max(0, overallStress)).toFixed(1);
+
+		stressLevelElement.textContent = stressLevel;
+
+		// Color code stress level
+		if (overallStress < 3) {
+			stressLevelElement.style.color = "#32CD32"; // Green
+		} else if (overallStress < 7) {
+			stressLevelElement.style.color = "#FFA500"; // Orange
+		} else {
+			stressLevelElement.style.color = "#FF4500"; // Red
+		}
+	}
+
+	// ... existing code ...
+}
+
+// Calculate heart rate contribution to stress
+function calculateHeartRateStress() {
+	if (heartRateData.length === 0) return 0;
+
+	// Get average heart rate
+	const heartRates = heartRateData.map((hr) => hr.bpm);
+	const avgHeartRate =
+		heartRates.reduce((a, b) => a + b, 0) / heartRates.length;
+
+	// Calculate stress based on heart rate - higher rates indicate more stress
+	// Normal resting is ~60-80, so normalize around that
+	return Math.max(0, Math.min(10, (avgHeartRate - 60) / 10));
+}
+
+// Calculate eye tracking contribution to stress
+function calculateEyeStress() {
+	if (eyeTrackingData.length < 10) return 0;
+
+	// Rapid eye movement and frequent blinking can indicate stress
+	const recentData = eyeTrackingData.slice(-10);
+
+	// Calculate average blink rate
+	const blinkRates = recentData
+		.map((et) => et.blinkRate)
+		.filter((br) => !isNaN(br));
+	const avgBlinkRate =
+		blinkRates.length > 0
+			? blinkRates.reduce((a, b) => a + b, 0) / blinkRates.length
+			: 0;
+
+	// Calculate saccade velocity - rapid eye movements indicate stress
+	const saccadeVelocities = recentData
+		.map((et) => et.saccadeVelocity)
+		.filter((sv) => !isNaN(sv));
+	const avgSaccadeVelocity =
+		saccadeVelocities.length > 0
+			? saccadeVelocities.reduce((a, b) => a + b, 0) / saccadeVelocities.length
+			: 0;
+
+	// Combine metrics into stress indicator
+	const stressFromBlinks = Math.min(5, avgBlinkRate / 5); // Normalize to 0-5 range
+	const stressFromSaccades = Math.min(5, avgSaccadeVelocity / 100); // Normalize to 0-5 range
+
+	return Math.min(10, stressFromBlinks + stressFromSaccades);
+}

@@ -380,3 +380,107 @@ body {
 		width: 100%;
 	}
 }
+
+/* Add styles for emotion display and download models button at the end of the file */
+
+/* Emotion colors */
+.emotion-happy {
+	color: #32cd32; /* Lime Green */
+}
+
+.emotion-sad {
+	color: #6495ed; /* Cornflower Blue */
+}
+
+.emotion-angry {
+	color: #ff4500; /* Orange Red */
+}
+
+.emotion-fearful {
+	color: #9370db; /* Medium Purple */
+}
+
+.emotion-disgusted {
+	color: #8b008b; /* Dark Magenta */
+}
+
+.emotion-surprised {
+	color: #ffd700; /* Gold */
+}
+
+.emotion-neutral {
+	color: #a9a9a9; /* Dark Gray */
+}
+
+/* Emotion Panel Styling */
+#emotion-panel {
+	border-left: 4px solid #9370db;
+}
+
+#emotion-panel h3 {
+	color: #9370db;
+}
+
+#current-emotion {
+	font-size: 1.4rem;
+	font-weight: bold;
+}
+
+#emotion-confidence {
+	font-size: 1.2rem;
+}
+
+/* Download models button styling */
+.download-models-container {
+	margin-top: 2rem;
+	text-align: center;
+}
+
+.support-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	background-color: #4a9ff5;
+	color: white;
+	border: none;
+	border-radius: var(--border-radius);
+	cursor: pointer;
+	font-weight: 500;
+	transition: background-color 0.3s ease;
+	margin-bottom: 0.75rem;
+}
+
+.support-btn:hover {
+	background-color: #3c84d0;
+}
+
+.download-note {
+	font-size: 0.85rem;
+	color: var(--light-text);
+	max-width: 300px;
+	margin: 0 auto;
+}
+
+/* Model Download UI */
+#model-download-container {
+	z-index: 9999;
+}
+
+.model-item {
+	transition: all 0.3s ease;
+}
+
+.model-item:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+#download-close-button {
+	transition: all 0.3s ease;
+}
+
+#download-close-button:hover {
+	background-color: #3c84d0;
+}

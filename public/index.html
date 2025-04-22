@@ -7,18 +7,18 @@
 		<link rel="stylesheet" href="styles.css" />
 		<!-- TensorFlow.js for ML processing -->
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-		<!-- Face-api.js for face detection and landmarks -->
-		<script
-			src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
-			integrity="sha256-lcS+gTzkJQCbJoQe+638gpBOxr4HkXnmGTvuw0nfU9I="
-			crossorigin="anonymous"
-		></script>
 		<!-- Chart.js for data visualization -->
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 		<!-- Socket.io for real-time communication -->
 		<script src="https://cdn.jsdelivr.net/npm/socket.io/4.4.1/socket.io.min.js"></script>
 		<!-- Feather icons -->
 		<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+		<!-- Face API - single library instance used throughout the application -->
+		<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+		<!-- Centralized Face API Loader -->
+		<script src="faceApiLoader.js"></script>
+		<!-- Model downloader script -->
+		<script src="downloadModels.js"></script>
 	</head>
 	<body>
 		<div class="device-selector">
@@ -33,6 +33,15 @@
 					<i data-feather="monitor"></i>
 					Laptop
 				</button>
+			</div>
+			<div class="download-models-container">
+				<button id="download-models-btn" class="support-btn">
+					<i data-feather="download-cloud"></i>
+					Download ML Models
+				</button>
+				<p class="download-note">
+					Download models for offline use and better emotion detection
+				</p>
 			</div>
 		</div>
 
@@ -62,6 +71,10 @@
 				<button id="pair-device" class="control-btn">
 					<i data-feather="link"></i>
 					Pair with Laptop
+				</button>
+				<button id="mobile-download-models" class="control-btn">
+					<i data-feather="download-cloud"></i>
+					Download Models
 				</button>
 			</div>
 
@@ -165,6 +178,23 @@
 					</div>
 				</div>
 
+				<div class="panel" id="emotion-panel">
+					<h3>Emotion Analysis</h3>
+					<div class="chart-container">
+						<canvas id="emotion-chart"></canvas>
+					</div>
+					<div class="metrics-grid">
+						<div class="metric-box">
+							<h4>Current Emotion</h4>
+							<div id="current-emotion">--</div>
+						</div>
+						<div class="metric-box">
+							<h4>Confidence</h4>
+							<div id="emotion-confidence">--%</div>
+						</div>
+					</div>
+				</div>
+
 				<div class="panel" id="analytics-panel">
 					<h3>Combined Analysis</h3>
 					<div class="chart-container">
@@ -217,9 +247,6 @@
 		<script src="utils.js"></script>
 		<script src="webSocketUtils.js"></script>
 
-		<!-- Face API - use browser-compatible version -->
-		<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
-
 		<!-- Load after Face API -->
 		<script src="eyeTracking.js"></script>
 		<script src="heartRateDetection.js"></script>
@@ -229,6 +256,11 @@
 		<script>
 			// Initialize Feather icons
 			document.addEventListener("DOMContentLoaded", () => {
+				// Suppress TensorFlow warnings to avoid console clutter
+				if (window.faceApiLoader) {
+					window.faceApiLoader.suppressTensorflowWarnings();
+				}
+
 				// Check if feather is defined before using it
 				if (typeof feather !== "undefined") {
 					feather.replace();
@@ -241,6 +273,57 @@
 					featherScript.onload = () => feather.replace();
 					document.head.appendChild(featherScript);
 				}
+
+				// Pre-initialize face-api to load models early
+				if (window.faceApiLoader) {
+					window.faceApiLoader.initializeFaceApi().then((success) => {
+						console.log(
+							"Face API pre-initialization " +
+								(success ? "successful" : "failed")
+						);
+					});
+				}
+
+				// Add download models button event listeners
+				document
+					.getElementById("download-models-btn")
+					.addEventListener("click", () => {
+						if (typeof downloadFaceApiModels === "function") {
+							downloadFaceApiModels();
+						} else {
+							alert(
+								"Model download functionality not available. Please try again later."
+							);
+						}
+					});
+
+				// Setup mobile download button when interface is shown
+				document.getElementById("mobile-btn").addEventListener("click", () => {
+					// Once mobile interface is loaded, set up the model download button
+					setTimeout(() => {
+						const mobileDownloadBtn = document.getElementById(
+							"mobile-download-models"
+						);
+						if (mobileDownloadBtn) {
+							mobileDownloadBtn.addEventListener("click", () => {
+								if (typeof downloadFaceApiModels === "function") {
+									downloadFaceApiModels();
+								} else {
+									alert(
+										"Model download functionality not available. Please try again later."
+									);
+								}
+							});
+						}
+					}, 500);
+				});
+
+				// Check if models need to be downloaded on first load
+				setTimeout(() => {
+					if (typeof checkModelsDownloadNeeded === "function") {
+						checkModelsDownloadNeeded();
+					}
+				}, 2000);
 
 				// Setup device selection
 				document.getElementById("mobile-btn").addEventListener("click", () => {

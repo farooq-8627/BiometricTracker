@@ -166,6 +166,13 @@ async function processEyeTracking(videoElement, canvas, context) {
 			headPosition: headData.position,
 			pupilDiameter: pupilData.diameter,
 			pupilDilationPercent: pupilData.dilationPercent,
+			faceDetection: {
+				// Include face detection data for emotion analysis
+				video: videoElement,
+				detection: detections.detection,
+				landmarks: detections.landmarks,
+				descriptor: detections.descriptor,
+			},
 		};
 	} catch (error) {
 		console.error("Error in eye tracking:", error);

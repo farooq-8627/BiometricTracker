@@ -56,6 +56,9 @@ wss.on("connection", (ws) => {
 				case "heart_rate_data":
 					handleHeartRateData(ws, data);
 					break;
+				case "emotion_data":
+					handleEmotionData(ws, data);
+					break;
 				case "biofeedback":
 					handleBiofeedback(ws, data);
 					break;
@@ -254,6 +257,78 @@ function handleHeartRateData(ws, data) {
 	}
 }
 
+// Handle emotion data from mobile device
+function handleEmotionData(ws, data) {
+	if (data.targetId) {
+		const targetWs = wsClients.laptop.get(data.targetId);
+
+		if (targetWs) {
+			// Validate emotion data
+			const sanitizedData = sanitizeEmotionData(data.emotionData);
+
+			sendToWebSocket(targetWs, {
+				type: "emotion_update",
+				sourceId: ws.id,
+				data: sanitizedData,
+			});
+		}
+	}
+}
+
+// Helper function to validate and sanitize emotion data
+function sanitizeEmotionData(emotionData) {
+	if (!emotionData) {
+		return {
+			happy: 0,
+			sad: 0,
+			angry: 0,
+			fearful: 0,
+			disgusted: 0,
+			surprised: 0,
+			neutral: 1,
+			dominant: "neutral",
+			dominantScore: 1,
+			timestamp: Date.now(),
+		};
+	}
+
+	// Create a copy to avoid modifying the original
+	const sanitized = { ...emotionData };
+
+	// Ensure all emotion values exist and are valid numbers between 0 and 1
+	const emotions = [
+		"happy",
+		"sad",
+		"angry",
+		"fearful",
+		"disgusted",
+		"surprised",
+		"neutral",
+	];
+	emotions.forEach((emotion) => {
+		sanitized[emotion] =
+			typeof sanitized[emotion] === "number"
+				? Math.max(0, Math.min(1, sanitized[emotion]))
+				: 0;
+	});
+
+	// Ensure dominant emotion exists and is valid
+	if (!sanitized.dominant || !emotions.includes(sanitized.dominant)) {
+		sanitized.dominant = "neutral";
+	}
+
+	// Ensure dominant score exists and is valid
+	sanitized.dominantScore =
+		typeof sanitized.dominantScore === "number"
+			? Math.max(0, Math.min(1, sanitized.dominantScore))
+			: 1;
+
+	// Ensure timestamp exists
+	sanitized.timestamp = sanitized.timestamp || Date.now();
+
+	return sanitized;
+}
+
 function handleBiofeedback(ws, data) {
 	if (data.targetId) {
 		const targetWs = wsClients.mobile.get(data.targetId);
@@ -365,6 +440,17 @@ io.on("connection", (socket) => {
 			io.to(data.targetId).emit("heart_rate_update", {
 				sourceId: socket.id,
 				data: data.heartRateData,
+			});
+		}
+	});
+
+	// Handle emotion data
+	socket.on("emotion_data", (data) => {
+		// Forward emotion data to paired laptop
+		if (data.targetId) {
+			io.to(data.targetId).emit("emotion_update", {
+				sourceId: socket.id,
+				data: data.emotionData,
 			});
 		}
 	});

@@ -91,87 +91,29 @@ async function loadModels() {
 		// Update UI to show loading status
 		updateConnectionStatus("Loading models...", "connecting");
 
-		// Check if face-api is defined
-		if (typeof faceapi === "undefined") {
-			console.error("Face API library not found. Will retry in 2 seconds...");
-			// Retry after a delay instead of trying to load dynamically
+		// Use the centralized faceApiLoader
+		if (typeof window.faceApiLoader === "undefined") {
+			console.error(
+				"Face API Loader not found. Ensure faceApiLoader.js is loaded before mobile.js."
+			);
 			setTimeout(loadModels, 2000);
 			return;
 		}
 
-		console.log("Face API found, loading models...");
+		console.log("Using centralized Face API Loader");
 
-		// Create models directory if loading from server
-		try {
-			// Log out which models are already loaded
-			console.log("Model loading status before loading attempt:");
-			console.log(
-				"- TinyFaceDetector loaded:",
-				faceapi.nets.tinyFaceDetector.isLoaded
-			);
-			console.log(
-				"- FaceLandmark68Net loaded:",
-				faceapi.nets.faceLandmark68Net.isLoaded
-			);
+		// Initialize face-api using the central loader
+		const success = await window.faceApiLoader.initializeFaceApi();
 
-			// Try loading from CDN with more explicit options
-			const modelPath =
-				"https://justadudewhohacks.github.io/face-api.js/models";
-			console.log("Attempting to load models from CDN:", modelPath);
+		if (success) {
+			console.log("Models loaded successfully from centralized loader");
+			updateConnectionStatus("Models loaded", "connected");
 
-			// Use more robust loading approach with explicit model paths
-			await Promise.all([
-				faceapi.nets.tinyFaceDetector.load(modelPath),
-				faceapi.nets.faceLandmark68Net.load(modelPath),
-			]);
-
-			// Verify models loaded successfully
-			if (
-				faceapi.nets.tinyFaceDetector.isLoaded &&
-				faceapi.nets.faceLandmark68Net.isLoaded
-			) {
-				console.log("Models loaded successfully from CDN");
-			} else {
-				throw new Error("Models not properly loaded from CDN");
-			}
-		} catch (modelError) {
-			console.warn(
-				"Failed to load models from CDN, trying local path:",
-				modelError
-			);
-
-			// Fall back to local models
-			const modelPath = "/models";
-			console.log("Attempting to load models from local path:", modelPath);
-
-			try {
-				await Promise.all([
-					faceapi.nets.tinyFaceDetector.load(modelPath),
-					faceapi.nets.faceLandmark68Net.load(modelPath),
-				]);
-
-				// Verify models loaded successfully
-				if (
-					faceapi.nets.tinyFaceDetector.isLoaded &&
-					faceapi.nets.faceLandmark68Net.isLoaded
-				) {
-					console.log("Models loaded successfully from local path");
-				} else {
-					throw new Error("Models not properly loaded from local path");
-				}
-			} catch (localModelError) {
-				console.error(
-					"Failed to load models from local path:",
-					localModelError
-				);
-				throw localModelError; // Re-throw to be caught by outer catch
-			}
+			// Enable camera button after models are loaded
+			document.getElementById("toggle-camera").disabled = false;
+		} else {
+			throw new Error("Failed to load models from centralized loader");
 		}
-
-		updateConnectionStatus("Models loaded", "connected");
-
-		// Enable camera button after models are loaded
-		document.getElementById("toggle-camera").disabled = false;
 	} catch (error) {
 		console.error("Error loading models:", error);
 		updateConnectionStatus(
@@ -360,6 +302,7 @@ function startTracking() {
 	// Track combined biometric data
 	let latestEyeData = null;
 	let latestHeartRate = null;
+	let latestEmotionData = null;
 
 	// Function to send combined data
 	const sendCombinedData = () => {
@@ -374,6 +317,7 @@ function startTracking() {
 			timestamp: Date.now(),
 			heartRate: latestHeartRate ? latestHeartRate.bpm : null,
 			heartRateConfidence: latestHeartRate ? latestHeartRate.confidence : null,
+			emotions: latestEmotionData,
 		};
 
 		// Send the combined data to the paired laptop
@@ -419,6 +363,31 @@ function startTracking() {
 								targetId: pairedLaptopId,
 								trackingData: eyeData,
 							});
+						}
+					}
+
+					// Process emotion detection from the same face detection
+					if (eyeData.faceDetection) {
+						try {
+							const emotionData = await detectEmotions(eyeData.faceDetection);
+							if (emotionData) {
+								latestEmotionData = emotionData;
+								updateEmotionMetrics(emotionData);
+
+								// Send emotion data separately
+								if (pairedLaptopId) {
+									if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
+										sendEmotionData(ws, pairedLaptopId, emotionData);
+									} else if (socket && socket.connected) {
+										socket.emit("emotion_data", {
+											targetId: pairedLaptopId,
+											emotionData: emotionData,
+										});
+									}
+								}
+							}
+						} catch (emotionError) {
+							console.error("Error during emotion detection:", emotionError);
 						}
 					}
 				} else {
@@ -844,5 +813,280 @@ function sendEyeTrackingData(ws, targetId, trackingData) {
 
 	if (ws.readyState === WebSocket.OPEN) {
 		ws.send(JSON.stringify(data));
+	}
+}
+
+// Send emotion data over WebSocket
+function sendEmotionData(ws, targetId, emotionData) {
+	const data = {
+		type: "emotion_data",
+		targetId: targetId,
+		emotionData: emotionData,
+	};
+
+	if (ws.readyState === WebSocket.OPEN) {
+		ws.send(JSON.stringify(data));
+	}
+}
+
+// Function to detect emotions from face detection results
+async function detectEmotions(faceDetection) {
+	// Make sure face-api is loaded with expression recognition capability
+	if (window.faceApiLoader) {
+		await window.faceApiLoader.initializeFaceApi();
+	} else {
+		// Create a function to ensure the emotion model is loaded
+		async function ensureEmotionModelLoaded() {
+			if (
+				!faceapi.nets.faceExpressionNet ||
+				!faceapi.nets.faceExpressionNet.isLoaded
+			) {
+				try {
+					const modelPath = "/models";
+					await faceapi.nets.faceExpressionNet.load(modelPath);
+				} catch (error) {
+					console.error("Failed to load emotion model:", error);
+					throw error;
+				}
+			}
+			return faceapi.nets.faceExpressionNet.isLoaded;
+		}
+
+		await ensureEmotionModelLoaded();
+	}
+
+	if (!faceDetection || !faceDetection.video) return null;
+
+	try {
+		// We have two options:
+		// 1. Use the existing detection and just add expressions (faster)
+		// 2. Re-detect with expressions (more accurate but slower)
+
+		let expressionResults;
+
+		// Try the faster approach first - use existing detection and add expressions
+		if (faceDetection.detection && faceapi.nets.faceExpressionNet.isLoaded) {
+			try {
+				// Clone the video element as a reference
+				const videoElement = faceDetection.video;
+
+				// Get the face tensor from the detection
+				const forwardParams = {
+					// Convert detection score and box to tensor inputs required for face expressions
+					number: [faceDetection.detection.score],
+					boxes: [
+						[
+							faceDetection.detection.box.x,
+							faceDetection.detection.box.y,
+							faceDetection.detection.box.width,
+							faceDetection.detection.box.height,
+						],
+					],
+				};
+
+				// Directly run more efficient detection on the already detected face
+				// IMPORTANT: Explicitly use TinyFaceDetector instead of defaulting to SsdMobilenetv1
+				const tinyFaceDetectorOptions = new faceapi.TinyFaceDetectorOptions({
+					inputSize: 224,
+					scoreThreshold: 0.3,
+				});
+
+				const faces = await faceapi
+					.detectAllFaces(videoElement, tinyFaceDetectorOptions)
+					.withFaceLandmarks()
+					.withFaceExpressions();
+
+				if (faces && faces.length > 0) {
+					expressionResults = faces[0].expressions;
+				}
+			} catch (error) {
+				console.warn("Error using faster emotion detection approach:", error);
+				// Fall back to full detection method
+			}
+		}
+
+		// If the faster approach failed, use the full detection
+		if (!expressionResults) {
+			console.log("Using full face detection for emotions");
+			// Perform a new complete detection with expressions
+			const videoElement = faceDetection.video;
+
+			// IMPORTANT: Always explicitly use TinyFaceDetector
+			const tinyFaceDetectorOptions = new faceapi.TinyFaceDetectorOptions({
+				inputSize: 224, // Smaller size for faster detection
+				scoreThreshold: 0.3,
+			});
+
+			const detections = await faceapi
+				.detectAllFaces(videoElement, tinyFaceDetectorOptions)
+				.withFaceLandmarks()
+				.withFaceExpressions();
+
+			if (detections && detections.length > 0) {
+				expressionResults = detections[0].expressions;
+			}
+		}
+
+		if (expressionResults) {
+			// Create a normalized emotions object
+			const emotions = {
+				happy: expressionResults.happy || 0,
+				sad: expressionResults.sad || 0,
+				angry: expressionResults.angry || 0,
+				fearful: expressionResults.fearful || 0,
+				disgusted: expressionResults.disgusted || 0,
+				surprised: expressionResults.surprised || 0,
+				neutral: expressionResults.neutral || 0,
+				timestamp: Date.now(),
+			};
+
+			// Determine the dominant emotion
+			let dominantEmotion = "neutral";
+			let maxScore = expressionResults.neutral || 0;
+
+			Object.entries(expressionResults).forEach(([emotion, score]) => {
+				if (score > maxScore) {
+					maxScore = score;
+					dominantEmotion = emotion;
+				}
+			});
+
+			emotions.dominant = dominantEmotion;
+			emotions.dominantScore = maxScore;
+
+			return emotions;
+		}
+	} catch (error) {
+		console.error("Error detecting emotions:", error);
+	}
+
+	return null;
+}
+
+// Update the emotion metrics display with new data
+function updateEmotionMetrics(emotionData) {
+	// Skip if emotionData is null or undefined
+	if (!emotionData) {
+		console.log("No emotion data available to display");
+		return;
+	}
+
+	// Create or get container for emotion metrics
+	let emotionContainer = document.getElementById("emotion-metrics");
+	if (!emotionContainer) {
+		// If container doesn't exist yet, create it
+		const mobileInterface = document.getElementById("mobile-interface");
+		const metricsSection = mobileInterface.querySelector(".metrics");
+
+		if (metricsSection) {
+			// Create a new section for emotion metrics
+			emotionContainer = document.createElement("div");
+			emotionContainer.id = "emotion-metrics";
+			emotionContainer.className = "emotion-metrics";
+			metricsSection.appendChild(emotionContainer);
+
+			// Add CSS for the emotion metrics
+			const style = document.createElement("style");
+			style.textContent = `
+				.emotion-metrics {
+					margin-top: 15px;
+					padding: 10px;
+					background: rgba(0, 0, 0, 0.2);
+					border-radius: 8px;
+				}
+				.emotion-dominant {
+					font-size: 14px;
+					font-weight: bold;
+					color: #fff;
+					margin-bottom: 8px;
+					text-transform: capitalize;
+				}
+				.emotion-bars {
+					display: grid;
+					grid-template-columns: 80px 1fr;
+					gap: 5px;
+					align-items: center;
+				}
+				.emotion-label {
+					text-transform: capitalize;
+					color: #ddd;
+					font-size: 12px;
+				}
+				.emotion-bar-container {
+					height: 10px;
+					background: rgba(255, 255, 255, 0.1);
+					border-radius: 5px;
+					overflow: hidden;
+				}
+				.emotion-bar {
+					height: 100%;
+					border-radius: 5px;
+				}
+				.emotion-happy { background: #32CD32; }
+				.emotion-sad { background: #6495ED; }
+				.emotion-angry { background: #FF4500; }
+				.emotion-fearful { background: #9370DB; }
+				.emotion-disgusted { background: #8B008B; }
+				.emotion-surprised { background: #FFD700; }
+				.emotion-neutral { background: #A9A9A9; }
+			`;
+			document.head.appendChild(style);
+		}
+	}
+
+	// Update the emotion container with current data
+	if (emotionContainer) {
+		// Clear previous content
+		emotionContainer.innerHTML = "";
+
+		// Add dominant emotion display
+		const dominantElement = document.createElement("div");
+		dominantElement.className = "emotion-dominant";
+		dominantElement.textContent = `Emotion: ${
+			emotionData.dominant
+		} (${Math.round(emotionData.dominantScore * 100)}%)`;
+		emotionContainer.appendChild(dominantElement);
+
+		// Create emotion bars container
+		const barsContainer = document.createElement("div");
+		barsContainer.className = "emotion-bars";
+		emotionContainer.appendChild(barsContainer);
+
+		// Add bars for each emotion
+		const emotions = [
+			"happy",
+			"sad",
+			"angry",
+			"fearful",
+			"disgusted",
+			"surprised",
+			"neutral",
+		];
+		emotions.forEach((emotion) => {
+			if (
+				emotion !== "dominant" &&
+				emotion !== "dominantScore" &&
+				emotion !== "timestamp"
+			) {
+				const score = emotionData[emotion] || 0;
+
+				// Create label
+				const label = document.createElement("div");
+				label.className = "emotion-label";
+				label.textContent = emotion;
+				barsContainer.appendChild(label);
+
+				// Create bar container
+				const barContainer = document.createElement("div");
+				barContainer.className = "emotion-bar-container";
+				barsContainer.appendChild(barContainer);
+
+				// Create the actual bar
+				const bar = document.createElement("div");
+				bar.className = `emotion-bar emotion-${emotion}`;
+				bar.style.width = `${score * 100}%`;
+				barContainer.appendChild(bar);
+			}
+		});
 	}
 }
