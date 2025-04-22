@@ -4,7 +4,10 @@
 let blinkCount = 0;
 let lastBlinkTime = 0;
 let lastEyePositions = [];
-let blinkThreshold = 0.2; // Threshold for detecting eye closure
+let blinkThreshold = 0.25; // Adjusted threshold for detecting eye closure - more sensitive to catch more blinks
+let isEyeClosed = false; // Track if eyes are currently closed
+let blinkHistory = []; // Store blink timestamps for more accurate blink rate
+const MAX_BLINK_HISTORY = 20; // Maximum number of blinks to store
 const MAX_EYE_POSITIONS = 10; // Number of eye positions to keep for velocity calculations
 let faceApiReady = false; // Flag to track if face-api is ready
 let lastFacePosition = null; // To track head movement
@@ -148,6 +151,11 @@ async function processEyeTracking(videoElement, canvas, context) {
 		const gazeData = calculateGazeDirection(leftEye, rightEye, headData);
 		drawGazeDirection(context, gazeData, leftEye, rightEye);
 
+		// Draw blink indicator
+		if (eyeData.isBlinking) {
+			drawBlinkIndicator(context, canvas.width, canvas.height);
+		}
+
 		// Estimate pupil diameter
 		const pupilData = estimatePupilDiameter(leftEye, rightEye);
 
@@ -258,25 +266,61 @@ function processEyeData(leftEye, rightEye) {
 	const rightEAR = calculateEyeAspectRatio(rightEye);
 	const avgEAR = (leftEAR + rightEAR) / 2;
 
-	// Detect blinks based on EAR threshold
+	// Check if current EAR indicates blinking
+	const isBlinking = avgEAR < blinkThreshold;
+
+	// Debug log for EAR values and threshold
+	console.log(
+		`Eye Aspect Ratio: ${avgEAR.toFixed(
+			4
+		)}, Threshold: ${blinkThreshold}, Is Blinking: ${isBlinking}`
+	);
+
+	// Detect blinks based on EAR threshold and state transition
 	const now = Date.now();
-	if (avgEAR < blinkThreshold) {
-		// A blink is detected if the last blink was more than 300ms ago
-		if (now - lastBlinkTime > 300) {
-			blinkCount++;
-			lastBlinkTime = now;
+	let blinkJustDetected = false;
+
+	// Detect a new blink when eyes transition from open to closed
+	if (isBlinking && !isEyeClosed) {
+		// A new blink is detected
+		blinkCount++;
+		blinkJustDetected = true;
+
+		// Add to blink history for accurate rate calculation
+		blinkHistory.push(now);
+
+		// Limit history size
+		if (blinkHistory.length > MAX_BLINK_HISTORY) {
+			blinkHistory.shift();
+		}
+
+		console.log("Blink detected! Total blinks:", blinkCount);
+	} else if (isBlinking) {
+		console.log("Eyes still closed");
+	} else {
+		console.log("Eyes open");
+	}
+
+	// Update eye state
+	isEyeClosed = isBlinking;
+
+	// Calculate blink rate (blinks per minute) from history
+	// Using actual blink times provides a more accurate measurement
+	let blinkRate = 0;
+	if (blinkHistory.length > 1) {
+		// Calculate time window in milliseconds
+		const timeWindow = now - blinkHistory[0];
+		// Calculate rate if we have enough history (at least 1 second of data)
+		if (timeWindow > 1000) {
+			// Convert to blinks per minute
+			blinkRate = (blinkHistory.length / timeWindow) * 60000;
 		}
 	}
 
-	// Calculate blink rate (blinks per minute)
-	// Use a 30-second window for calculation
-	const timeWindowMs = 30000;
-	const blinkRate = (blinkCount / timeWindowMs) * 60000;
-
-	// Reset blink count after the time window
-	if (now - lastBlinkTime > timeWindowMs) {
-		blinkCount = 0;
-		lastBlinkTime = now;
+	// Clean up old blink history (older than 60 seconds)
+	const cutoffTime = now - 60000;
+	while (blinkHistory.length > 0 && blinkHistory[0] < cutoffTime) {
+		blinkHistory.shift();
 	}
 
 	// Calculate eye positions (average of left and right eye centers)
@@ -310,10 +354,34 @@ function processEyeData(leftEye, rightEye) {
 
 	return {
 		blinkRate,
+		blinkCount,
+		isBlinking,
+		blinkJustDetected,
 		saccadeVelocity,
 		gazeDuration,
 		pupilDilation: avgPupilSize,
+		eyeAspectRatio: avgEAR,
 	};
+}
+
+// Draw a visual indicator when a blink is detected
+function drawBlinkIndicator(context, width, height) {
+	// Save current context state
+	context.save();
+
+	// Draw a semi-transparent red border to indicate blinking
+	context.strokeStyle = "rgba(255, 0, 0, 0.7)";
+	context.lineWidth = 10;
+	context.strokeRect(0, 0, width, height);
+
+	// Add text indicator
+	context.fillStyle = "rgba(255, 0, 0, 0.8)";
+	context.font = "24px Arial";
+	context.textAlign = "center";
+	context.fillText("BLINK DETECTED", width / 2, 40);
+
+	// Restore context
+	context.restore();
 }
 
 // Calculate Eye Aspect Ratio (EAR)

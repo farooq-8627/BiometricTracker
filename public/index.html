@@ -9,6 +9,8 @@
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 		<!-- Chart.js for data visualization -->
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<!-- Chart.js Annotation plugin for threshold lines -->
+		<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 		<!-- Socket.io for real-time communication -->
 		<script src="https://cdn.jsdelivr.net/npm/socket.io/4.4.1/socket.io.min.js"></script>
 		<!-- Feather icons -->
@@ -121,6 +123,10 @@
 							<div id="blink-rate">-- blinks/min</div>
 						</div>
 						<div class="metric-box">
+							<h4>Blink Count</h4>
+							<div id="blink-count">-- blinks</div>
+						</div>
+						<div class="metric-box">
 							<h4>Gaze Duration</h4>
 							<div id="gaze-duration">-- seconds</div>
 						</div>
@@ -128,6 +134,14 @@
 							<h4>Fatigue Index</h4>
 							<div id="fatigue-index">--</div>
 						</div>
+					</div>
+				</div>
+
+				<div class="panel" id="blink-detection-panel">
+					<h3>Blink Detection</h3>
+					<div id="blink-indicator" class="blink-indicator">BLINK</div>
+					<div class="chart-container">
+						<canvas id="blink-chart"></canvas>
 					</div>
 				</div>
 

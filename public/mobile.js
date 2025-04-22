@@ -800,6 +800,10 @@ function sendEyeTrackingData(ws, targetId, trackingData) {
 		targetId: targetId,
 		trackingData: {
 			blinkRate: trackingData.blinkRate,
+			blinkCount: trackingData.blinkCount,
+			isBlinking: trackingData.isBlinking,
+			blinkJustDetected: trackingData.blinkJustDetected,
+			eyeAspectRatio: trackingData.eyeAspectRatio,
 			saccadeVelocity: trackingData.saccadeVelocity,
 			gazeDuration: trackingData.gazeDuration,
 			pupilDilation: trackingData.pupilDilation,

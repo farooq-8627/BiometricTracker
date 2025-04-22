@@ -180,6 +180,10 @@ function sanitizeEyeTrackingData(trackingData) {
 	if (!trackingData) {
 		return {
 			blinkRate: 0,
+			blinkCount: 0,
+			isBlinking: false,
+			blinkJustDetected: false,
+			eyeAspectRatio: 0.3,
 			saccadeVelocity: 0,
 			gazeDuration: 0,
 			pupilDilation: 0,
@@ -196,6 +200,18 @@ function sanitizeEyeTrackingData(trackingData) {
 	// Ensure basic eye tracking metrics exist
 	sanitized.blinkRate =
 		typeof sanitized.blinkRate === "number" ? sanitized.blinkRate : 0;
+	sanitized.blinkCount =
+		typeof sanitized.blinkCount === "number" ? sanitized.blinkCount : 0;
+	sanitized.isBlinking =
+		typeof sanitized.isBlinking === "boolean" ? sanitized.isBlinking : false;
+	sanitized.blinkJustDetected =
+		typeof sanitized.blinkJustDetected === "boolean"
+			? sanitized.blinkJustDetected
+			: false;
+	sanitized.eyeAspectRatio =
+		typeof sanitized.eyeAspectRatio === "number"
+			? sanitized.eyeAspectRatio
+			: 0.3;
 	sanitized.saccadeVelocity =
 		typeof sanitized.saccadeVelocity === "number"
 			? sanitized.saccadeVelocity

@@ -6,11 +6,15 @@ let eyeMovementChart = null;
 let heartRateChart = null;
 let combinedChart = null;
 let emotionChart = null; // New chart for emotions
+let blinkChart = null; // New chart for blink detection
 let eyeTrackingData = [];
+let blinkData = []; // Store blink data separately
 let heartRateData = [];
 let emotionData = []; // New array for emotion data
 let feedbackHistory = [];
-let useWebSocket = false; // Flag to determine which connection to use
+let useWebSocket = true; // Flag to determine which connection to use
+let totalBlinkCount = 0; // Track the cumulative blink count
+let lastBlinkCount = 0; // Track the last blink count for change detection
 
 // Initialize the laptop interface
 function initializeLaptopInterface() {
@@ -332,6 +336,81 @@ function setupCharts() {
 		},
 	});
 
+	// Blink Detection Chart - new chart for visualizing blinks
+	const blinkChartCtx = document.getElementById("blink-chart").getContext("2d");
+	blinkChart = new Chart(blinkChartCtx, {
+		type: "line",
+		data: {
+			labels: [],
+			datasets: [
+				{
+					label: "Eye Aspect Ratio",
+					data: [],
+					borderColor: "#4a6fa5",
+					backgroundColor: "rgba(74, 111, 165, 0.2)",
+					tension: 0.4,
+					fill: false,
+					yAxisID: "y",
+				},
+				{
+					label: "Blink Detection",
+					data: [],
+					borderColor: "#f44336",
+					backgroundColor: "rgba(244, 67, 54, 0.5)",
+					stepped: true,
+					pointRadius: 0,
+					fill: true,
+					yAxisID: "y1",
+				},
+			],
+		},
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
+			scales: {
+				x: {
+					display: true,
+					title: {
+						display: true,
+						text: "Time",
+					},
+				},
+				y: {
+					display: true,
+					position: "left",
+					title: {
+						display: true,
+						text: "Eye Aspect Ratio",
+					},
+					min: 0,
+					max: 0.5,
+				},
+				y1: {
+					display: true,
+					position: "right",
+					title: {
+						display: true,
+						text: "Blink",
+					},
+					min: 0,
+					max: 1,
+					grid: {
+						drawOnChartArea: false,
+					},
+				},
+			},
+			plugins: {
+				title: {
+					display: true,
+					text: "Eye Blink Detection",
+					font: {
+						size: 16,
+					},
+				},
+			},
+		},
+	});
+
 	// Heart Rate Chart
 	const heartRateCtx = document
 		.getElementById("heart-rate-chart")
@@ -647,10 +726,33 @@ function disconnectDevice(deviceId) {
 
 // Process eye tracking data
 function processEyeTrackingData(data) {
+	// Add timestamp to the data
+	const timestamp = Date.now();
+
+	// Check for new blinks
+	const newBlinkCount = data.blinkCount || 0;
+	const blinkDelta = Math.max(0, newBlinkCount - lastBlinkCount);
+
+	// Update the total blink count if there are new blinks
+	if (blinkDelta > 0) {
+		totalBlinkCount += blinkDelta;
+		// Also update the incoming data to use our cumulative count
+		data.blinkCount = totalBlinkCount;
+		console.log(
+			`Detected ${blinkDelta} new blinks. Total blinks: ${totalBlinkCount}`
+		);
+	}
+
+	// Remember the last blink count
+	lastBlinkCount = newBlinkCount;
+
 	// Add data to tracking array
 	eyeTrackingData.push({
-		timestamp: Date.now(),
+		timestamp: timestamp,
 		blinkRate: data.blinkRate || 0,
+		blinkCount: totalBlinkCount,
+		isBlinking: data.isBlinking || false,
+		eyeAspectRatio: data.eyeAspectRatio || 0.3,
 		saccadeVelocity: data.saccadeVelocity || 0,
 		gazeDuration: data.gazeDuration || 0,
 		gazeDirection: data.gazeDirection || { x: 0, y: 0 },
@@ -665,8 +767,23 @@ function processEyeTrackingData(data) {
 		eyeTrackingData.shift();
 	}
 
+	// Add to blink data for blink chart
+	blinkData.push({
+		timestamp: timestamp,
+		eyeAspectRatio: data.eyeAspectRatio || 0.3,
+		isBlinking: data.isBlinking ? 1 : 0, // 1 when blinking, 0 when not
+	});
+
+	// Keep only the most recent 50 blink data points
+	if (blinkData.length > 50) {
+		blinkData.shift();
+	}
+
 	// Update metrics display
-	updateEyeTrackingMetrics(data);
+	updateEyeTrackingMetrics({
+		...data,
+		blinkCount: totalBlinkCount,
+	});
 
 	// Update the real-time visualization
 	renderEyeTrackingVisualization(data);
@@ -686,6 +803,41 @@ function processEyeTrackingData(data) {
 		);
 
 		eyeMovementChart.update();
+	}
+
+	// Update blink chart
+	if (blinkChart) {
+		const labels = blinkData.map((d) =>
+			new Date(d.timestamp).toLocaleTimeString()
+		);
+
+		blinkChart.data.labels = labels;
+		blinkChart.data.datasets[0].data = blinkData.map((d) => d.eyeAspectRatio);
+		blinkChart.data.datasets[1].data = blinkData.map((d) => d.isBlinking);
+
+		// Update the threshold line in the background
+		blinkChart.options.plugins.annotation = {
+			annotations: {
+				thresholdLine: {
+					type: "line",
+					yMin: 0.25, // Match the threshold in eyeTracking.js
+					yMax: 0.25,
+					borderColor: "rgba(255, 0, 0, 0.5)",
+					borderWidth: 2,
+					borderDash: [5, 5],
+					label: {
+						content: "Blink Threshold",
+						position: "start",
+						backgroundColor: "rgba(255, 0, 0, 0.5)",
+						font: {
+							size: 10,
+						},
+					},
+				},
+			},
+		};
+
+		blinkChart.update();
 	}
 
 	// Update combined metrics
@@ -1036,6 +1188,7 @@ function updateEyeTrackingMetrics(latestData) {
 
 	// Calculate metrics
 	const blinkRateElement = document.getElementById("blink-rate");
+	const blinkCountElement = document.getElementById("blink-count");
 	const gazeDurationElement = document.getElementById("gaze-duration");
 	const fatigueIndexElement = document.getElementById("fatigue-index");
 
@@ -1043,6 +1196,30 @@ function updateEyeTrackingMetrics(latestData) {
 	blinkRateElement.textContent = `${latestData.blinkRate.toFixed(
 		1
 	)} blinks/min`;
+
+	// Update blink count with visual feedback when it changes
+	if (blinkCountElement) {
+		const currentCount = latestData.blinkCount || 0;
+		const prevDisplayedCount = parseInt(
+			blinkCountElement.getAttribute("data-count") || "0"
+		);
+
+		// Update the displayed count
+		blinkCountElement.textContent = `${currentCount} blinks`;
+		blinkCountElement.setAttribute("data-count", currentCount);
+
+		// Add visual feedback if the count increased
+		if (currentCount > prevDisplayedCount) {
+			// Add a class for animation
+			blinkCountElement.classList.add("blink-count-updated");
+
+			// Remove the class after the animation completes
+			setTimeout(() => {
+				blinkCountElement.classList.remove("blink-count-updated");
+			}, 1000);
+		}
+	}
+
 	gazeDurationElement.textContent = `${latestData.gazeDuration.toFixed(
 		1
 	)} seconds`;
@@ -1062,6 +1239,41 @@ function updateEyeTrackingMetrics(latestData) {
 		fatigueIndexElement.style.color = "#ff9800"; // Orange - moderate fatigue
 	} else {
 		fatigueIndexElement.style.color = "#f44336"; // Red - high fatigue
+	}
+
+	// Add blink indicator animation if a blink was just detected or if currently blinking
+	const blinkIndicator = document.getElementById("blink-indicator");
+	if (blinkIndicator) {
+		// Log blink status for debugging
+		console.log(
+			`Blink data: isBlinking=${latestData.isBlinking}, blinkJustDetected=${
+				latestData.blinkJustDetected
+			}, EAR=${latestData.eyeAspectRatio?.toFixed(2)}`
+		);
+
+		// Check if the blink was just detected or if currently blinking
+		if (latestData.blinkJustDetected || latestData.isBlinking) {
+			console.log("BLINK DETECTED - Updating indicator");
+			// Add animation class
+			blinkIndicator.classList.add("blink-detected");
+
+			// For a continuous effect during blinking, only set timeout if it was a new blink
+			if (latestData.blinkJustDetected) {
+				// Remove class after animation completes
+				setTimeout(() => {
+					if (
+						!document
+							.getElementById("blink-indicator")
+							.classList.contains("blink-detected")
+					)
+						return;
+					blinkIndicator.classList.remove("blink-detected");
+				}, 1000);
+			}
+		} else if (!latestData.isBlinking) {
+			// If not blinking, ensure the class is removed
+			blinkIndicator.classList.remove("blink-detected");
+		}
 	}
 }
 
@@ -1313,8 +1525,11 @@ function addToFeedbackHistory(feedback) {
 // Reset all data including emotion data
 function resetData() {
 	eyeTrackingData = [];
+	blinkData = []; // Reset blink data
 	heartRateData = [];
 	emotionData = []; // Reset emotion data
+	totalBlinkCount = 0; // Reset total blink count
+	lastBlinkCount = 0; // Reset last blink count
 
 	// Reset charts and visualizations
 	if (eyeMovementChart) {
@@ -1322,6 +1537,13 @@ function resetData() {
 		eyeMovementChart.data.datasets[0].data = [];
 		eyeMovementChart.data.datasets[1].data = [];
 		eyeMovementChart.update();
+	}
+
+	if (blinkChart) {
+		blinkChart.data.labels = [];
+		blinkChart.data.datasets[0].data = [];
+		blinkChart.data.datasets[1].data = [];
+		blinkChart.update();
 	}
 
 	if (heartRateChart) {
@@ -1348,6 +1570,9 @@ function resetData() {
 
 	// Reset metrics
 	document.getElementById("blink-rate").textContent = "-- blinks/min";
+	document.getElementById("blink-count").textContent = "-- blinks";
+	// Reset the data-count attribute as well
+	document.getElementById("blink-count").setAttribute("data-count", "0");
 	document.getElementById("gaze-duration").textContent = "-- seconds";
 	document.getElementById("fatigue-index").textContent = "--";
 	document.getElementById("current-hr").textContent = "-- BPM";
