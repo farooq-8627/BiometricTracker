@@ -557,39 +557,63 @@ function setupCharts() {
 			],
 			datasets: [
 				{
-					label: "Emotion Levels",
+					label: "Confidence (%)",
 					data: [0, 0, 0, 0, 0, 0, 0],
-					backgroundColor: "rgba(153, 102, 255, 0.2)",
-					borderColor: "rgba(153, 102, 255, 1)",
-					borderWidth: 2,
-					pointBackgroundColor: "rgba(153, 102, 255, 1)",
+					backgroundColor: "rgba(132, 99, 255, 0.3)",
+					borderColor: "rgba(132, 99, 255, 1)",
+					pointBackgroundColor: "rgba(132, 99, 255, 1)",
 					pointBorderColor: "#fff",
 					pointHoverBackgroundColor: "#fff",
-					pointHoverBorderColor: "rgba(153, 102, 255, 1)",
+					pointHoverBorderColor: "rgba(132, 99, 255, 1)",
+					pointRadius: 6,
+					pointHoverRadius: 8,
 				},
 			],
 		},
 		options: {
-			scales: {
-				r: {
-					beginAtZero: true,
-					max: 1,
-				},
-			},
+			responsive: true,
+			maintainAspectRatio: false,
 			plugins: {
 				title: {
 					display: true,
-					text: "Emotion Analysis",
+					text: "Emotion Analysis: neutral",
 					font: {
 						size: 16,
+						weight: "bold",
+					},
+					padding: {
+						top: 10,
+						bottom: 10,
 					},
 				},
 				legend: {
 					display: false,
 				},
+				tooltip: {
+					callbacks: {
+						label: function (context) {
+							return `Confidence: ${context.raw}%`;
+						},
+					},
+				},
 			},
-			responsive: true,
-			maintainAspectRatio: false,
+			scales: {
+				r: {
+					angleLines: {
+						display: true,
+					},
+					suggestedMin: 0,
+					suggestedMax: 100,
+					ticks: {
+						stepSize: 25,
+					},
+					pointLabels: {
+						font: {
+							size: 14,
+						},
+					},
+				},
+			},
 		},
 	});
 }
@@ -1776,9 +1800,7 @@ function processEmotionData(data) {
 
 	// Add to data array
 	emotionData.push(data);
-	console.log(
-		`Added emotion data point. Dominant: ${data.dominant || "None"}`
-	);
+	console.log(`Added emotion data point. Dominant: ${data.dominant || "None"}`);
 
 	// Limit the data array size
 	if (emotionData.length > 30) {
@@ -1803,37 +1825,59 @@ function processEmotionData(data) {
 
 // Update the emotion chart with new data
 function updateEmotionChart(data) {
+	console.log("updateEmotionChart called with data:", JSON.stringify(data));
+
 	if (!emotionChart) {
-		console.error("Emotion chart not available");
+		console.error("Emotion chart not initialized!");
+
+		// Try to check if the element exists
+		const emotionChartElement = document.getElementById("emotion-chart");
+		if (!emotionChartElement) {
+			console.error("Element with ID 'emotion-chart' not found in DOM!");
+		} else {
+			console.log("Element exists but chart not initialized");
+			setupEmotionChart();
+		}
 		return;
 	}
 
 	try {
-		// Use emotion values directly from data object
-		if (!data) {
-			console.error("No emotion values in data");
+		// Ensure we have valid data
+		if (!data || !data.dominant) {
+			console.error("No valid emotion data available");
 			return;
 		}
 
-		// Update emotion chart data
-		emotionChart.data.datasets[0].data = [
-			data.happy * 100,
-			data.sad * 100,
-			data.angry * 100,
-			data.fearful * 100,
-			data.disgusted * 100,
-			data.surprised * 100,
-			data.neutral * 100,
+		// Set single dominant emotion instead of using radar chart with multiple values
+		const dominantEmotion = data.dominant;
+		const dominantScore = data.dominantScore || 0;
+		const confidencePercent = Math.round(dominantScore * 100);
+
+		// Clear previous data and set only the dominant emotion
+		const emotionsList = [
+			"happy",
+			"sad",
+			"angry",
+			"fearful",
+			"disgusted",
+			"surprised",
+			"neutral",
 		];
+		const newData = emotionsList.map((emotion) => {
+			// Set the dominant emotion to its score, zero for others
+			return emotion === dominantEmotion.toLowerCase() ? confidencePercent : 0;
+		});
 
-		// Set the chart title to show dominant emotion
-		emotionChart.options.plugins.title.text = `Emotion Analysis: ${
-			data.dominant || "Neutral"
-		}`;
+		emotionChart.data.datasets[0].data = newData;
 
-		// Update emotion chart
+		// Make the title more descriptive with the confidence percentage
+		emotionChart.options.plugins.title.text = `Emotion Analysis: ${dominantEmotion} (${confidencePercent}%)`;
+
+		// Update the chart
 		emotionChart.update();
-		console.log("Emotion chart updated successfully");
+		console.log(
+			`Emotion chart updated to show ${dominantEmotion} (${confidencePercent}%)`
+		);
 	} catch (error) {
 		console.error("Error updating emotion chart:", error);
 	}
@@ -1870,14 +1914,16 @@ function setupEmotionChart() {
 				],
 				datasets: [
 					{
-						label: "Emotion Score (%)",
+						label: "Confidence (%)",
 						data: [0, 0, 0, 0, 0, 0, 0],
-						backgroundColor: "rgba(75, 192, 192, 0.2)",
-						borderColor: "rgba(75, 192, 192, 1)",
-						pointBackgroundColor: "rgba(75, 192, 192, 1)",
+						backgroundColor: "rgba(132, 99, 255, 0.3)",
+						borderColor: "rgba(132, 99, 255, 1)",
+						pointBackgroundColor: "rgba(132, 99, 255, 1)",
 						pointBorderColor: "#fff",
 						pointHoverBackgroundColor: "#fff",
-						pointHoverBorderColor: "rgba(75, 192, 192, 1)",
+						pointHoverBorderColor: "rgba(132, 99, 255, 1)",
+						pointRadius: 6,
+						pointHoverRadius: 8,
 					},
 				],
 			},
@@ -1887,7 +1933,25 @@ function setupEmotionChart() {
 				plugins: {
 					title: {
 						display: true,
-						text: "Emotion Analysis",
+						text: "Emotion Analysis: neutral",
+						font: {
+							size: 16,
+							weight: "bold",
+						},
+						padding: {
+							top: 10,
+							bottom: 10,
+						},
+					},
+					legend: {
+						display: false,
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context) {
+								return `Confidence: ${context.raw}%`;
+							},
+						},
 					},
 				},
 				scales: {
@@ -1897,11 +1961,19 @@ function setupEmotionChart() {
 						},
 						suggestedMin: 0,
 						suggestedMax: 100,
+						ticks: {
+							stepSize: 25,
+						},
+						pointLabels: {
+							font: {
+								size: 14,
+							},
+						},
 					},
 				},
 			},
 		});
-		console.log("Emotion chart re-initialized successfully");
+		console.log("Emotion chart initialized successfully");
 	} catch (error) {
 		console.error("Error setting up emotion chart:", error);
 	}
@@ -1914,54 +1986,62 @@ function updateEmotionMetrics(data) {
 		return;
 	}
 
-	// Update current emotion display
-	const currentEmotionElement = document.getElementById("current-emotion");
-	const emotionConfidenceElement =
-		document.getElementById("emotion-confidence");
+	try {
+		// Update current emotion display
+		const currentEmotionElement = document.getElementById("current-emotion");
+		const emotionConfidenceElement =
+			document.getElementById("emotion-confidence");
 
-	if (!currentEmotionElement || !emotionConfidenceElement) {
-		console.error("Missing emotion metric elements in the DOM");
-		return;
-	}
+		if (!currentEmotionElement || !emotionConfidenceElement) {
+			console.error("Missing emotion metric elements in the DOM");
+			return;
+		}
 
-	// Update current emotion with dominant emotion
-	const dominantEmotion = data.dominant || "Neutral";
-	currentEmotionElement.textContent = dominantEmotion;
-	console.log(`Updated current emotion: ${dominantEmotion}`);
+		// Update current emotion with dominant emotion
+		const dominantEmotion = data.dominant || "neutral";
+		const confidencePercent = Math.round((data.dominantScore || 0) * 100);
 
-	// Set color based on emotion type
-	switch (dominantEmotion.toLowerCase()) {
-		case "happy":
-			currentEmotionElement.style.color = "#4caf50"; // Green
-			break;
-		case "sad":
-		case "fearful":
-		case "disgusted":
-			currentEmotionElement.style.color = "#f44336"; // Red
-			break;
-		case "angry":
-			currentEmotionElement.style.color = "#ff5722"; // Deep Orange
-			break;
-		case "surprised":
-			currentEmotionElement.style.color = "#2196f3"; // Blue
-			break;
-		case "neutral":
-		default:
-			currentEmotionElement.style.color = "#9e9e9e"; // Gray
-			break;
-	}
+		// Set the emotion text and confidence percentage
+		currentEmotionElement.textContent = dominantEmotion;
+		emotionConfidenceElement.textContent = `${confidencePercent}%`;
 
-	// Calculate confidence percentage for dominant emotion
-	const confidenceValue = data.dominantScore * 100;
-	emotionConfidenceElement.textContent = `${Math.round(confidenceValue)}%`;
-	console.log(`Updated emotion confidence: ${Math.round(confidenceValue)}%`);
+		console.log(
+			`Updated emotion metrics: ${dominantEmotion} (${confidencePercent}%)`
+		);
 
-	// Set color based on confidence level
-	if (confidenceValue > 70) {
-		emotionConfidenceElement.style.color = "#4caf50"; // Green - high confidence
-	} else if (confidenceValue > 40) {
-		emotionConfidenceElement.style.color = "#ff9800"; // Orange - medium confidence
-	} else {
-		emotionConfidenceElement.style.color = "#f44336"; // Red - low confidence
+		// Set color based on emotion type
+		switch (dominantEmotion.toLowerCase()) {
+			case "happy":
+				currentEmotionElement.style.color = "#4caf50"; // Green
+				emotionConfidenceElement.style.color = "#4caf50";
+				break;
+			case "sad":
+				currentEmotionElement.style.color = "#2196f3"; // Blue
+				emotionConfidenceElement.style.color = "#2196f3";
+				break;
+			case "angry":
+				currentEmotionElement.style.color = "#f44336"; // Red
+				emotionConfidenceElement.style.color = "#f44336";
+				break;
+			case "fearful":
+				currentEmotionElement.style.color = "#9c27b0"; // Purple
+				emotionConfidenceElement.style.color = "#9c27b0";
+				break;
+			case "disgusted":
+				currentEmotionElement.style.color = "#795548"; // Brown
+				emotionConfidenceElement.style.color = "#795548";
+				break;
+			case "surprised":
+				currentEmotionElement.style.color = "#ff9800"; // Orange
+				emotionConfidenceElement.style.color = "#ff9800";
+				break;
+			case "neutral":
+			default:
+				currentEmotionElement.style.color = "#9e9e9e"; // Gray
+				emotionConfidenceElement.style.color = "#9e9e9e";
+				break;
+		}
+	} catch (error) {
+		console.error("Error updating emotion metrics:", error);
 	}
 }

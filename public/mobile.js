@@ -91,26 +91,40 @@ async function loadModels() {
 		// Update UI to show loading status
 		updateConnectionStatus("Loading models...", "connecting");
 
-		// Use the centralized faceApiLoader
+		// Use our centralized face-api loader
 		if (typeof window.faceApiLoader === "undefined") {
 			console.error(
 				"Face API Loader not found. Ensure faceApiLoader.js is loaded before mobile.js."
 			);
 			setTimeout(loadModels, 2000);
-			return;
+			return false;
 		}
 
-		console.log("Using centralized Face API Loader");
+		console.log("Using faceApiLoader to load models");
 
 		// Initialize face-api using the central loader
 		const success = await window.faceApiLoader.initializeFaceApi();
+		console.log("Face API initialization:", success ? "successful" : "failed");
 
 		if (success) {
 			console.log("Models loaded successfully from centralized loader");
+
+			// Explicitly ensure emotion model is loaded
+			if (!faceapi.nets.faceExpressionNet.isLoaded) {
+				console.log("Loading face expression model specifically");
+				const modelPath = "/models";
+				await faceapi.nets.faceExpressionNet.load(modelPath);
+				console.log("Face expression model loaded successfully");
+			} else {
+				console.log("Face expression model was already loaded");
+			}
+
 			updateConnectionStatus("Models loaded", "connected");
 
 			// Enable camera button after models are loaded
 			document.getElementById("toggle-camera").disabled = false;
+
+			return true;
 		} else {
 			throw new Error("Failed to load models from centralized loader");
 		}
@@ -123,6 +137,7 @@ async function loadModels() {
 
 		// Retry after a delay
 		setTimeout(loadModels, 5000);
+		return false;
 	}
 }
 
@@ -369,26 +384,44 @@ function startTracking() {
 					// Process emotion detection from the same face detection
 					if (eyeData.faceDetection) {
 						try {
+							console.log(
+								"Attempting emotion detection with face detection data"
+							);
 							const emotionData = await detectEmotions(eyeData.faceDetection);
 							if (emotionData) {
+								console.log("Emotion detection successful, updating metrics");
 								latestEmotionData = emotionData;
 								updateEmotionMetrics(emotionData);
 
 								// Send emotion data separately
 								if (pairedLaptopId) {
+									console.log(
+										"Sending emotion data to paired laptop:",
+										pairedLaptopId
+									);
 									if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
 										sendEmotionData(ws, pairedLaptopId, emotionData);
+										console.log("Emotion data sent via WebSocket");
 									} else if (socket && socket.connected) {
 										socket.emit("emotion_data", {
 											targetId: pairedLaptopId,
 											emotionData: emotionData,
 										});
+										console.log("Emotion data sent via Socket.IO");
+									} else {
+										console.log("No active connection to send emotion data");
 									}
 								}
+							} else {
+								console.log("No emotion data returned from detection");
 							}
 						} catch (emotionError) {
 							console.error("Error during emotion detection:", emotionError);
 						}
+					} else {
+						console.log(
+							"No face detection data available for emotion detection"
+						);
 					}
 				} else {
 					console.log("No face detected for eye tracking");
@@ -895,33 +928,55 @@ function sendEmotionData(ws, targetId, emotionData) {
 
 // Function to detect emotions from face detection results
 async function detectEmotions(faceDetection) {
-	// Make sure face-api is loaded with expression recognition capability
-	if (window.faceApiLoader) {
-		await window.faceApiLoader.initializeFaceApi();
-	} else {
-		// Create a function to ensure the emotion model is loaded
-		async function ensureEmotionModelLoaded() {
-			if (
-				!faceapi.nets.faceExpressionNet ||
-				!faceapi.nets.faceExpressionNet.isLoaded
-			) {
-				try {
-					const modelPath = "/models";
-					await faceapi.nets.faceExpressionNet.load(modelPath);
-				} catch (error) {
-					console.error("Failed to load emotion model:", error);
-					throw error;
-				}
-			}
-			return faceapi.nets.faceExpressionNet.isLoaded;
-		}
+	console.log(
+		"Attempting emotion detection with face detection data:",
+		faceDetection ? "Face detection data available" : "No face detection data"
+	);
 
-		await ensureEmotionModelLoaded();
+	// Make sure face-api is loaded with expression recognition capability
+	try {
+		if (window.faceApiLoader) {
+			console.log("Using faceApiLoader to initialize Face API");
+			await window.faceApiLoader.initializeFaceApi();
+		} else {
+			console.log("No faceApiLoader found, initializing Face API manually");
+			// Create a function to ensure the emotion model is loaded
+			async function ensureEmotionModelLoaded() {
+				console.log("Checking if emotion model is loaded");
+				if (
+					!faceapi.nets.faceExpressionNet ||
+					!faceapi.nets.faceExpressionNet.isLoaded
+				) {
+					try {
+						console.log("Loading emotion model from /models");
+						const modelPath = "/models";
+						await faceapi.nets.faceExpressionNet.load(modelPath);
+						console.log("Emotion model loaded successfully");
+					} catch (error) {
+						console.error("Failed to load emotion model:", error);
+						throw error;
+					}
+				}
+				return faceapi.nets.faceExpressionNet.isLoaded;
+			}
+
+			await ensureEmotionModelLoaded();
+		}
+	} catch (initError) {
+		console.error(
+			"Error initializing Face API for emotion detection:",
+			initError
+		);
+		return null;
 	}
 
-	if (!faceDetection || !faceDetection.video) return null;
+	if (!faceDetection || !faceDetection.video) {
+		console.error("Invalid face detection data for emotion detection");
+		return null;
+	}
 
 	try {
+		console.log("Starting emotion detection process");
 		// We have two options:
 		// 1. Use the existing detection and just add expressions (faster)
 		// 2. Re-detect with expressions (more accurate but slower)
@@ -931,6 +986,9 @@ async function detectEmotions(faceDetection) {
 		// Try the faster approach first - use existing detection and add expressions
 		if (faceDetection.detection && faceapi.nets.faceExpressionNet.isLoaded) {
 			try {
+				console.log(
+					"Trying faster emotion detection with existing face detection"
+				);
 				// Clone the video element as a reference
 				const videoElement = faceDetection.video;
 
@@ -955,13 +1013,17 @@ async function detectEmotions(faceDetection) {
 					scoreThreshold: 0.3,
 				});
 
+				console.log("Running face detection with expressions");
 				const faces = await faceapi
 					.detectAllFaces(videoElement, tinyFaceDetectorOptions)
 					.withFaceLandmarks()
 					.withFaceExpressions();
 
 				if (faces && faces.length > 0) {
+					console.log("Face with expressions detected:", faces.length);
 					expressionResults = faces[0].expressions;
+				} else {
+					console.log("No faces detected with expressions");
 				}
 			} catch (error) {
 				console.warn("Error using faster emotion detection approach:", error);
@@ -981,13 +1043,20 @@ async function detectEmotions(faceDetection) {
 				scoreThreshold: 0.3,
 			});
 
+			console.log("Running complete face detection with expressions");
 			const detections = await faceapi
 				.detectAllFaces(videoElement, tinyFaceDetectorOptions)
 				.withFaceLandmarks()
 				.withFaceExpressions();
 
 			if (detections && detections.length > 0) {
+				console.log(
+					"Complete face detection successful, faces found:",
+					detections.length
+				);
 				expressionResults = detections[0].expressions;
+			} else {
+				console.log("No faces found in complete detection");
 			}
 		}
 
@@ -1018,7 +1087,13 @@ async function detectEmotions(faceDetection) {
 			emotions.dominant = dominantEmotion;
 			emotions.dominantScore = maxScore;
 
+			console.log(
+				"Emotion detection successful, dominant emotion:",
+				dominantEmotion
+			);
 			return emotions;
+		} else {
+			console.log("No expression results found");
 		}
 	} catch (error) {
 		console.error("Error detecting emotions:", error);
@@ -1029,6 +1104,9 @@ async function detectEmotions(faceDetection) {
 
 // Update the emotion metrics display with new data
 function updateEmotionMetrics(emotionData) {
+	// Enhanced debugging
+	console.log("Updating emotion metrics with data:", emotionData);
+
 	// Skip if emotionData is null or undefined
 	if (!emotionData) {
 		console.log("No emotion data available to display");
@@ -1037,65 +1115,74 @@ function updateEmotionMetrics(emotionData) {
 
 	// Create or get container for emotion metrics
 	let emotionContainer = document.getElementById("emotion-metrics");
+	const mobileInterface = document.getElementById("mobile-interface");
+	const metricsSection = mobileInterface.querySelector(".metrics");
+
+	if (!metricsSection) {
+		console.error("Could not find metrics section in mobile interface");
+		return;
+	}
+
+	console.log("Metrics section found:", metricsSection);
+
 	if (!emotionContainer) {
 		// If container doesn't exist yet, create it
-		const mobileInterface = document.getElementById("mobile-interface");
-		const metricsSection = mobileInterface.querySelector(".metrics");
+		console.log("Creating new emotion metrics container");
 
-		if (metricsSection) {
-			// Create a new section for emotion metrics
-			emotionContainer = document.createElement("div");
-			emotionContainer.id = "emotion-metrics";
-			emotionContainer.className = "emotion-metrics";
-			metricsSection.appendChild(emotionContainer);
+		// Create a new section for emotion metrics
+		emotionContainer = document.createElement("div");
+		emotionContainer.id = "emotion-metrics";
+		emotionContainer.className = "emotion-metrics";
+		metricsSection.appendChild(emotionContainer);
 
-			// Add CSS for the emotion metrics
-			const style = document.createElement("style");
-			style.textContent = `
-				.emotion-metrics {
-					margin-top: 15px;
-					padding: 10px;
-					background: rgba(0, 0, 0, 0.2);
-					border-radius: 8px;
-				}
-				.emotion-dominant {
-					font-size: 14px;
-					font-weight: bold;
-					color: #fff;
-					margin-bottom: 8px;
-					text-transform: capitalize;
-				}
-				.emotion-bars {
-					display: grid;
-					grid-template-columns: 80px 1fr;
-					gap: 5px;
-					align-items: center;
-				}
-				.emotion-label {
-					text-transform: capitalize;
-					color: #ddd;
-					font-size: 12px;
-				}
-				.emotion-bar-container {
-					height: 10px;
-					background: rgba(255, 255, 255, 0.1);
-					border-radius: 5px;
-					overflow: hidden;
-				}
-				.emotion-bar {
-					height: 100%;
-					border-radius: 5px;
-				}
-				.emotion-happy { background: #32CD32; }
-				.emotion-sad { background: #6495ED; }
-				.emotion-angry { background: #FF4500; }
-				.emotion-fearful { background: #9370DB; }
-				.emotion-disgusted { background: #8B008B; }
-				.emotion-surprised { background: #FFD700; }
-				.emotion-neutral { background: #A9A9A9; }
-			`;
-			document.head.appendChild(style);
-		}
+		// Add CSS for the emotion metrics
+		const style = document.createElement("style");
+		style.textContent = `
+			.emotion-metrics {
+				margin-top: 15px;
+				padding: 10px;
+				background: rgba(0, 0, 0, 0.2);
+				border-radius: 8px;
+			}
+			.emotion-dominant {
+				font-size: 14px;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 8px;
+				text-transform: capitalize;
+			}
+			.emotion-bars {
+				display: grid;
+				grid-template-columns: 80px 1fr;
+				gap: 5px;
+				align-items: center;
+			}
+			.emotion-label {
+				text-transform: capitalize;
+				color: #ddd;
+				font-size: 12px;
+			}
+			.emotion-bar-container {
+				height: 10px;
+				background: rgba(255, 255, 255, 0.1);
+				border-radius: 5px;
+				overflow: hidden;
+			}
+			.emotion-bar {
+				height: 100%;
+				border-radius: 5px;
+			}
+			.emotion-happy { background: #32CD32; }
+			.emotion-sad { background: #6495ED; }
+			.emotion-angry { background: #FF4500; }
+			.emotion-fearful { background: #9370DB; }
+			.emotion-disgusted { background: #8B008B; }
+			.emotion-surprised { background: #FFD700; }
+			.emotion-neutral { background: #A9A9A9; }
+		`;
+		document.head.appendChild(style);
+
+		console.log("Emotion metrics container created and added to DOM");
 	}
 
 	// Update the emotion container with current data
@@ -1103,12 +1190,16 @@ function updateEmotionMetrics(emotionData) {
 		// Clear previous content
 		emotionContainer.innerHTML = "";
 
+		// Format dominant emotion for display
+		const dominantEmotion = emotionData.dominant || "neutral";
+		const dominantScore = emotionData.dominantScore || 0;
+
 		// Add dominant emotion display
 		const dominantElement = document.createElement("div");
 		dominantElement.className = "emotion-dominant";
-		dominantElement.textContent = `Emotion: ${
-			emotionData.dominant
-		} (${Math.round(emotionData.dominantScore * 100)}%)`;
+		dominantElement.textContent = `Emotion: ${dominantEmotion} (${Math.round(
+			dominantScore * 100
+		)}%)`;
 		emotionContainer.appendChild(dominantElement);
 
 		// Create emotion bars container
@@ -1126,6 +1217,7 @@ function updateEmotionMetrics(emotionData) {
 			"surprised",
 			"neutral",
 		];
+
 		emotions.forEach((emotion) => {
 			if (
 				emotion !== "dominant" &&
@@ -1152,6 +1244,10 @@ function updateEmotionMetrics(emotionData) {
 				barContainer.appendChild(bar);
 			}
 		});
+
+		console.log("Emotion metrics updated successfully");
+	} else {
+		console.error("Failed to create or find emotion metrics container");
 	}
 }
 
