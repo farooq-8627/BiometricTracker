@@ -66,9 +66,20 @@ function initializeLaptopInterface() {
 				}
 			},
 			onHeartRateUpdate: (sourceId, data) => {
-				console.log("Received heart rate data:", { sourceId, data });
+				console.log(
+					"Received heart rate data via WebSocket from",
+					sourceId,
+					":",
+					data
+				);
 				if (sourceId === pairedMobileId) {
+					console.log("Processing heart rate data from paired mobile:", data);
 					processHeartRateData(data);
+				} else {
+					console.warn(
+						"Received heart rate data from unpaired device:",
+						sourceId
+					);
 				}
 			},
 			onEmotionUpdate: (sourceId, data) => {
@@ -244,11 +255,17 @@ function setupSocketListeners() {
 	});
 
 	socket.on("heart_rate_update", (data) => {
-		console.log("Received heart rate data:", data);
+		console.log("Received heart rate update via Socket.IO:", data);
 
 		// Process and display heart rate data
 		if (data.sourceId === pairedMobileId) {
+			console.log("Processing heart rate data from paired mobile", data.data);
 			processHeartRateData(data.data);
+		} else {
+			console.warn(
+				"Received heart rate data from unpaired device:",
+				data.sourceId
+			);
 		}
 	});
 
@@ -1279,7 +1296,26 @@ function updateEyeTrackingMetrics(latestData) {
 
 // Process heart rate data from the mobile device
 function processHeartRateData(data) {
+	console.log("Processing heart rate data:", data);
+
+	// Validate data
+	if (!data || typeof data.bpm !== "number") {
+		console.error("Invalid heart rate data received:", data);
+		return;
+	}
+
+	// Add timestamp if not provided
+	if (!data.timestamp) {
+		data.timestamp = Date.now();
+	}
+
+	// Add to data array
 	heartRateData.push(data);
+	console.log(
+		`Added heart rate data point: ${data.bpm} BPM, confidence: ${
+			data.confidence || "N/A"
+		}`
+	);
 
 	// Limit the data array size
 	if (heartRateData.length > 30) {
@@ -1287,8 +1323,32 @@ function processHeartRateData(data) {
 		heartRateData.shift();
 	}
 
-	// Update heart rate chart
-	if (heartRateChart) {
+	// Debug check if chart exists
+	if (!heartRateChart) {
+		console.error("Heart rate chart not initialized - attempting to fix");
+		setupHeartRateChart();
+	}
+
+	// Update heart rate chart with new data point
+	updateHeartRateChart();
+
+	// Update heart rate metrics
+	updateHeartRateMetrics();
+
+	// Update combined metrics
+	updateCombinedMetrics();
+}
+
+// Separate function to update the heart rate chart
+function updateHeartRateChart() {
+	// Check if chart exists
+	if (!heartRateChart) {
+		console.error("Heart rate chart still not available");
+		return;
+	}
+
+	try {
+		// Create timestamps for x-axis
 		const timestamps = heartRateData.map((_, index) => {
 			const time = new Date();
 			time.setSeconds(
@@ -1302,42 +1362,125 @@ function processHeartRateData(data) {
 			});
 		});
 
+		console.log(
+			"Updating heart rate chart with data points:",
+			heartRateData.length
+		);
+		console.log(
+			"Latest BPM:",
+			heartRateData.length > 0
+				? heartRateData[heartRateData.length - 1].bpm
+				: "None"
+		);
+
+		// Update chart data
 		heartRateChart.data.labels = timestamps;
 		heartRateChart.data.datasets[0].data = heartRateData.map((d) => d.bpm);
+
+		// Update chart
 		heartRateChart.update();
+		console.log("Heart rate chart updated successfully");
+	} catch (error) {
+		console.error("Error updating heart rate chart:", error);
 	}
+}
 
-	// Update heart rate metrics
-	updateHeartRateMetrics();
+// Setup heart rate chart if it wasn't initialized properly
+function setupHeartRateChart() {
+	try {
+		const heartRateCtx = document.getElementById("heart-rate-chart");
+		if (!heartRateCtx) {
+			console.error("Cannot find heart-rate-chart element");
+			return;
+		}
 
-	// Update combined metrics
-	updateCombinedMetrics();
+		// Check if we can get the 2D context
+		const ctx = heartRateCtx.getContext("2d");
+		if (!ctx) {
+			console.error("Cannot get 2D context for heart rate chart");
+			return;
+		}
+
+		// Create new chart
+		heartRateChart = new Chart(ctx, {
+			type: "line",
+			data: {
+				labels: [],
+				datasets: [
+					{
+						label: "Heart Rate (BPM)",
+						data: [],
+						borderColor: "#f44336",
+						backgroundColor: "rgba(244, 67, 54, 0.2)",
+						tension: 0.4,
+						fill: true,
+					},
+				],
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				scales: {
+					x: {
+						display: true,
+						title: {
+							display: true,
+							text: "Time",
+						},
+					},
+					y: {
+						display: true,
+						title: {
+							display: true,
+							text: "BPM",
+						},
+						min: 40,
+						max: 140,
+					},
+				},
+			},
+		});
+		console.log("Heart rate chart re-initialized successfully");
+	} catch (error) {
+		console.error("Error setting up heart rate chart:", error);
+	}
 }
 
 // Update heart rate metrics display
 function updateHeartRateMetrics() {
-	if (heartRateData.length === 0) return;
+	if (heartRateData.length === 0) {
+		console.warn("No heart rate data available to update metrics");
+		return;
+	}
 
 	// Calculate metrics
 	const currentHRElement = document.getElementById("current-hr");
 	const averageHRElement = document.getElementById("average-hr");
 	const hrVariabilityElement = document.getElementById("hr-variability");
 
+	if (!currentHRElement || !averageHRElement || !hrVariabilityElement) {
+		console.error("Missing heart rate metric elements in the DOM");
+		return;
+	}
+
 	// Current heart rate (latest data point)
 	const currentHR = heartRateData[heartRateData.length - 1].bpm;
 	currentHRElement.textContent = `${Math.round(currentHR)} BPM`;
+	console.log(`Updated current heart rate: ${Math.round(currentHR)} BPM`);
 
 	// Average heart rate
 	const avgHR =
 		heartRateData.reduce((sum, data) => sum + data.bpm, 0) /
 		heartRateData.length;
 	averageHRElement.textContent = `${Math.round(avgHR)} BPM`;
+	console.log(`Updated average heart rate: ${Math.round(avgHR)} BPM`);
 
 	// Heart rate variability (standard deviation)
 	if (heartRateData.length > 1) {
 		const hrValues = heartRateData.map((d) => d.bpm);
 		const hrVariability = calculateStandardDeviation(hrValues);
 		hrVariabilityElement.textContent = hrVariability.toFixed(1);
+		console.log(`Updated HRV: ${hrVariability.toFixed(1)}`);
 
 		// Set color based on HRV level (higher is generally better in a resting state)
 		if (hrVariability > 10) {
@@ -1616,88 +1759,81 @@ window.addEventListener("beforeunload", () => {
 	}
 });
 
-// Process emotion data received from mobile device
+// Process emotion data from the mobile device
 function processEmotionData(data) {
-	console.log("processEmotionData called with data:", JSON.stringify(data));
+	console.log("Processing emotion data:", data);
 
-	if (!data) {
-		console.error("No emotion data received!");
+	// Validate data
+	if (!data || !data.emotions) {
+		console.error("Invalid emotion data received:", data);
 		return;
 	}
 
-	// Add timestamp if not present
-	const timestamp = data.timestamp || Date.now();
-	const emotionWithTimestamp = {
-		...data,
-		timestamp,
-	};
+	// Add timestamp if not provided
+	if (!data.timestamp) {
+		data.timestamp = Date.now();
+	}
 
-	console.log("Processing emotion data:", JSON.stringify(emotionWithTimestamp));
+	// Add to data array
+	emotionData.push(data);
+	console.log(
+		`Added emotion data point. Dominant: ${data.dominantEmotion || "None"}`
+	);
 
-	// Add to emotion data array and limit size
-	emotionData.push(emotionWithTimestamp);
-	if (emotionData.length > 100) {
+	// Limit the data array size
+	if (emotionData.length > 30) {
 		emotionData.shift();
 	}
 
-	// Update the emotion chart
-	console.log("Updating emotion chart with data");
-	updateEmotionChart(emotionWithTimestamp);
+	// Debug check if chart exists
+	if (!emotionChart) {
+		console.error("Emotion chart not initialized - attempting to fix");
+		setupEmotionChart();
+	}
 
-	// Update the emotion metrics display
-	console.log("Updating emotion metrics display");
-	updateEmotionMetrics(emotionWithTimestamp);
+	// Update emotion chart with new data
+	updateEmotionChart(data);
 
-	// Also update combined metrics with emotional data
-	console.log("Updating combined metrics");
+	// Update emotion metrics display
+	updateEmotionMetrics(data);
+
+	// Check if Combined Metrics need update
 	updateCombinedMetrics();
-
-	console.log("Processed emotion data successfully");
 }
 
 // Update the emotion chart with new data
-function updateEmotionChart(latestData) {
-	console.log(
-		"updateEmotionChart called with data:",
-		JSON.stringify(latestData)
-	);
-
+function updateEmotionChart(data) {
 	if (!emotionChart) {
-		console.error("Emotion chart not initialized!");
-
-		// Try to check if the element exists
-		const emotionChartElement = document.getElementById("emotion-chart");
-		if (!emotionChartElement) {
-			console.error("Element with ID 'emotion-chart' not found in DOM!");
-		} else {
-			console.log("Element exists but chart not initialized");
-		}
+		console.error("Emotion chart not available");
 		return;
 	}
 
-	// Update radar chart with emotion values
-	emotionChart.data.datasets[0].data = [
-		latestData.happy || 0,
-		latestData.sad || 0,
-		latestData.angry || 0,
-		latestData.fearful || 0,
-		latestData.disgusted || 0,
-		latestData.surprised || 0,
-		latestData.neutral || 0,
-	];
-
-	// Update chart title to show dominant emotion
-	if (latestData.dominant) {
-		const dominantEmotion =
-			latestData.dominant.charAt(0).toUpperCase() +
-			latestData.dominant.slice(1);
-
-		const confidencePercent = Math.round((latestData.dominantScore || 0) * 100);
-
-		emotionChart.options.plugins.title.text = `Emotion Analysis: ${dominantEmotion} (${confidencePercent}%)`;
-	}
-
 	try {
+		// Get emotion values
+		const emotions = data.emotions;
+
+		if (!emotions) {
+			console.error("No emotion values in data");
+			return;
+		}
+
+		// Update emotion chart data
+		emotionChart.data.datasets[0].data = [
+			emotions.happy * 100,
+			emotions.sad * 100,
+			emotions.angry * 100,
+			emotions.fearful * 100,
+			emotions.disgusted * 100,
+			emotions.surprised * 100,
+			emotions.neutral * 100,
+		];
+
+		// Set the chart title to show dominant emotion
+		emotionChart.options.plugins.title.text = `Emotion Analysis: ${
+			data.dominantEmotion || "Neutral"
+		}`;
+
+		// Update emotion chart
 		emotionChart.update();
 		console.log("Emotion chart updated successfully");
 	} catch (error) {
@@ -1705,137 +1841,130 @@ function updateEmotionChart(latestData) {
 	}
 }
 
-// Update displayed emotion metrics
-function updateEmotionMetrics(latestData) {
-	console.log(
-		"updateEmotionMetrics called with data:",
-		JSON.stringify(latestData)
-	);
+// Setup emotion chart if it wasn't initialized properly
+function setupEmotionChart() {
+	try {
+		const emotionCtx = document.getElementById("emotion-chart");
+		if (!emotionCtx) {
+			console.error("Cannot find emotion-chart element");
+			return;
+		}
 
-	if (!latestData) {
-		console.error("No emotion data provided to updateEmotionMetrics");
+		// Check if we can get the 2D context
+		const ctx = emotionCtx.getContext("2d");
+		if (!ctx) {
+			console.error("Cannot get 2D context for emotion chart");
+			return;
+		}
+
+		// Create new chart
+		emotionChart = new Chart(ctx, {
+			type: "radar",
+			data: {
+				labels: [
+					"Happy",
+					"Sad",
+					"Angry",
+					"Fearful",
+					"Disgusted",
+					"Surprised",
+					"Neutral",
+				],
+				datasets: [
+					{
+						label: "Emotion Score (%)",
+						data: [0, 0, 0, 0, 0, 0, 0],
+						backgroundColor: "rgba(75, 192, 192, 0.2)",
+						borderColor: "rgba(75, 192, 192, 1)",
+						pointBackgroundColor: "rgba(75, 192, 192, 1)",
+						pointBorderColor: "#fff",
+						pointHoverBackgroundColor: "#fff",
+						pointHoverBorderColor: "rgba(75, 192, 192, 1)",
+					},
+				],
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					title: {
+						display: true,
+						text: "Emotion Analysis",
+					},
+				},
+				scales: {
+					r: {
+						angleLines: {
+							display: true,
+						},
+						suggestedMin: 0,
+						suggestedMax: 100,
+					},
+				},
+			},
+		});
+		console.log("Emotion chart re-initialized successfully");
+	} catch (error) {
+		console.error("Error setting up emotion chart:", error);
+	}
+}
+
+// Update emotion metrics display
+function updateEmotionMetrics(data) {
+	if (!data || !data.emotions) {
+		console.warn("No emotion data available to update metrics");
 		return;
 	}
 
 	// Update current emotion display
 	const currentEmotionElement = document.getElementById("current-emotion");
-	if (!currentEmotionElement) {
-		console.error("Element with ID 'current-emotion' not found in DOM!");
-	} else if (latestData.dominant) {
-		// Capitalize first letter of emotion
-		const formattedEmotion =
-			latestData.dominant.charAt(0).toUpperCase() +
-			latestData.dominant.slice(1);
+	const emotionConfidenceElement =
+		document.getElementById("emotion-confidence");
 
-		currentEmotionElement.textContent = formattedEmotion;
-
-		// Add color coding for emotions
-		currentEmotionElement.className = ""; // Reset classes
-		currentEmotionElement.classList.add("emotion-" + latestData.dominant);
-		console.log("Updated current emotion to:", formattedEmotion);
+	if (!currentEmotionElement || !emotionConfidenceElement) {
+		console.error("Missing emotion metric elements in the DOM");
+		return;
 	}
 
-	// Update confidence display
-	const confidenceElement = document.getElementById("emotion-confidence");
-	if (!confidenceElement) {
-		console.error("Element with ID 'emotion-confidence' not found in DOM!");
+	// Update current emotion with dominant emotion
+	const dominantEmotion = data.dominantEmotion || "Neutral";
+	currentEmotionElement.textContent = dominantEmotion;
+	console.log(`Updated current emotion: ${dominantEmotion}`);
+
+	// Set color based on emotion type
+	switch (dominantEmotion.toLowerCase()) {
+		case "happy":
+			currentEmotionElement.style.color = "#4caf50"; // Green
+			break;
+		case "sad":
+		case "fearful":
+		case "disgusted":
+			currentEmotionElement.style.color = "#f44336"; // Red
+			break;
+		case "angry":
+			currentEmotionElement.style.color = "#ff5722"; // Deep Orange
+			break;
+		case "surprised":
+			currentEmotionElement.style.color = "#2196f3"; // Blue
+			break;
+		case "neutral":
+		default:
+			currentEmotionElement.style.color = "#9e9e9e"; // Gray
+			break;
+	}
+
+	// Calculate confidence percentage for dominant emotion
+	const emotions = data.emotions;
+	const confidenceValue = emotions[dominantEmotion.toLowerCase()] * 100;
+	emotionConfidenceElement.textContent = `${Math.round(confidenceValue)}%`;
+	console.log(`Updated emotion confidence: ${Math.round(confidenceValue)}%`);
+
+	// Set color based on confidence level
+	if (confidenceValue > 70) {
+		emotionConfidenceElement.style.color = "#4caf50"; // Green - high confidence
+	} else if (confidenceValue > 40) {
+		emotionConfidenceElement.style.color = "#ff9800"; // Orange - medium confidence
 	} else {
-		const confidencePercent = Math.round((latestData.dominantScore || 0) * 100);
-		confidenceElement.textContent = `${confidencePercent}%`;
-		console.log("Updated emotion confidence to:", confidencePercent + "%");
+		emotionConfidenceElement.style.color = "#f44336"; // Red - low confidence
 	}
-}
-
-// Update combined metrics to include emotion data
-function updateCombinedMetrics() {
-	// ... existing code ...
-
-	// Add stress level calculation based on emotions
-	const stressLevelElement = document.getElementById("stress-level");
-	if (stressLevelElement && emotionData.length > 0) {
-		// Get latest emotion data
-		const latestEmotion = emotionData[emotionData.length - 1];
-
-		// Calculate stress based on negative emotions and heart rate
-		let emotionalStress = 0;
-		if (latestEmotion) {
-			// Weight negative emotions more heavily
-			emotionalStress =
-				(latestEmotion.angry || 0) * 1.5 +
-				(latestEmotion.fearful || 0) * 1.2 +
-				(latestEmotion.sad || 0) * 0.8 +
-				(latestEmotion.disgusted || 0) * 0.7;
-
-			// Reduce stress if happy/neutral
-			emotionalStress -= (latestEmotion.happy || 0) * 0.5;
-			emotionalStress = Math.max(0, Math.min(10, emotionalStress * 5));
-		}
-
-		// Combine with physical stress from heart rate and eye movement
-		const heartRateStress = calculateHeartRateStress();
-		const eyeStress = calculateEyeStress();
-
-		const overallStress =
-			emotionalStress * 0.4 + heartRateStress * 0.3 + eyeStress * 0.3;
-		const stressLevel = Math.min(10, Math.max(0, overallStress)).toFixed(1);
-
-		stressLevelElement.textContent = stressLevel;
-
-		// Color code stress level
-		if (overallStress < 3) {
-			stressLevelElement.style.color = "#32CD32"; // Green
-		} else if (overallStress < 7) {
-			stressLevelElement.style.color = "#FFA500"; // Orange
-		} else {
-			stressLevelElement.style.color = "#FF4500"; // Red
-		}
-	}
-
-	// ... existing code ...
-}
-
-// Calculate heart rate contribution to stress
-function calculateHeartRateStress() {
-	if (heartRateData.length === 0) return 0;
-
-	// Get average heart rate
-	const heartRates = heartRateData.map((hr) => hr.bpm);
-	const avgHeartRate =
-		heartRates.reduce((a, b) => a + b, 0) / heartRates.length;
-
-	// Calculate stress based on heart rate - higher rates indicate more stress
-	// Normal resting is ~60-80, so normalize around that
-	return Math.max(0, Math.min(10, (avgHeartRate - 60) / 10));
-}
-
-// Calculate eye tracking contribution to stress
-function calculateEyeStress() {
-	if (eyeTrackingData.length < 10) return 0;
-
-	// Rapid eye movement and frequent blinking can indicate stress
-	const recentData = eyeTrackingData.slice(-10);
-
-	// Calculate average blink rate
-	const blinkRates = recentData
-		.map((et) => et.blinkRate)
-		.filter((br) => !isNaN(br));
-	const avgBlinkRate =
-		blinkRates.length > 0
-			? blinkRates.reduce((a, b) => a + b, 0) / blinkRates.length
-			: 0;
-
-	// Calculate saccade velocity - rapid eye movements indicate stress
-	const saccadeVelocities = recentData
-		.map((et) => et.saccadeVelocity)
-		.filter((sv) => !isNaN(sv));
-	const avgSaccadeVelocity =
-		saccadeVelocities.length > 0
-			? saccadeVelocities.reduce((a, b) => a + b, 0) / saccadeVelocities.length
-			: 0;
-
-	// Combine metrics into stress indicator
-	const stressFromBlinks = Math.min(5, avgBlinkRate / 5); // Normalize to 0-5 range
-	const stressFromSaccades = Math.min(5, avgSaccadeVelocity / 100); // Normalize to 0-5 range
-
-	return Math.min(10, stressFromBlinks + stressFromSaccades);
 }

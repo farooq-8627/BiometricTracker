@@ -260,16 +260,35 @@ function sanitizeEyeTrackingData(trackingData) {
 }
 
 function handleHeartRateData(ws, data) {
-	if (data.targetId) {
-		const targetWs = wsClients.laptop.get(data.targetId);
+	console.log(`Processing heart rate data from ${ws.id} to ${data.targetId}`);
 
-		if (targetWs) {
-			sendToWebSocket(targetWs, {
-				type: "heart_rate_update",
-				sourceId: ws.id,
-				data: data.heartRateData,
-			});
-		}
+	if (!data.targetId) {
+		console.error("Missing targetId in heart rate data");
+		return;
+	}
+
+	if (!data.heartRateData) {
+		console.error("Missing heartRateData in message");
+		return;
+	}
+
+	const targetWs = wsClients.laptop.get(data.targetId);
+
+	if (targetWs) {
+		console.log(
+			`Sending heart rate data to laptop ${data.targetId}: ${JSON.stringify(
+				data.heartRateData
+			)}`
+		);
+		sendToWebSocket(targetWs, {
+			type: "heart_rate_update",
+			sourceId: ws.id,
+			data: data.heartRateData,
+		});
+	} else {
+		console.error(
+			`Target laptop ${data.targetId} not found for heart rate data`
+		);
 	}
 }
 
