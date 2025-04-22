@@ -1,222 +1,363 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eye Tracking & Heart Rate Monitoring System</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- TensorFlow.js for ML processing -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <!-- Face-api.js for face detection and landmarks -->
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
-    <!-- Chart.js for data visualization -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Socket.io for real-time communication -->
-    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
-    <!-- Feather icons -->
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-</head>
-<body>
-    <div class="device-selector">
-        <h1>Eye Tracking & Heart Rate Monitoring System</h1>
-        <p>Select your device type:</p>
-        <div class="button-container">
-            <button id="mobile-btn" class="device-btn">
-                <i data-feather="smartphone"></i>
-                Phone
-            </button>
-            <button id="laptop-btn" class="device-btn">
-                <i data-feather="monitor"></i>
-                Laptop
-            </button>
-        </div>
-    </div>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Eye Tracking & Heart Rate Monitoring System</title>
+		<link rel="stylesheet" href="styles.css" />
+		<!-- TensorFlow.js for ML processing -->
+		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+		<!-- Chart.js for data visualization -->
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<!-- Socket.io for real-time communication -->
+		<script src="https://cdn.jsdelivr.net/npm/socket.io/4.4.1/socket.io.min.js"></script>
+		<!-- Feather icons -->
+		<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+		<!-- Face API - single library instance used throughout the application -->
+		<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+		<!-- Centralized Face API Loader -->
+		<script src="faceApiLoader.js"></script>
+		<!-- Model downloader script -->
+		<script src="downloadModels.js"></script>
+	</head>
+	<body>
+		<div class="device-selector">
+			<h1>Eye Tracking & Heart Rate Monitoring System</h1>
+			<p>Select your device type:</p>
+			<div class="button-container">
+				<button id="mobile-btn" class="device-btn">
+					<i data-feather="smartphone"></i>
+					Phone
+				</button>
+				<button id="laptop-btn" class="device-btn">
+					<i data-feather="monitor"></i>
+					Laptop
+				</button>
+			</div>
+			<div class="download-models-container">
+				<button id="download-models-btn" class="support-btn">
+					<i data-feather="download-cloud"></i>
+					Download ML Models
+				</button>
+				<p class="download-note">
+					Download models for offline use and better emotion detection
+				</p>
+			</div>
+		</div>
 
-    <!-- Mobile Interface (hidden by default) -->
-    <div id="mobile-interface" class="interface-container hidden">
-        <div class="header">
-            <h2>Mobile Data Collection</h2>
-            <div id="connection-status" class="status not-connected">Not Connected</div>
-        </div>
+		<!-- Mobile Interface (hidden by default) -->
+		<div id="mobile-interface" class="interface-container hidden">
+			<div class="header">
+				<h2>Mobile Data Collection</h2>
+				<div id="connection-status" class="status not-connected">
+					Not Connected
+				</div>
+			</div>
 
-        <div class="video-container">
-            <video id="camera-feed" autoplay playsinline></video>
-            <canvas id="overlay-canvas"></canvas>
-        </div>
+			<div class="video-container">
+				<video id="camera-feed" autoplay playsinline></video>
+				<canvas id="overlay-canvas"></canvas>
+			</div>
 
-        <div class="controls">
-            <button id="toggle-camera" class="control-btn">
-                <i data-feather="video"></i>
-                Start Camera
-            </button>
-            <button id="toggle-tracking" class="control-btn" disabled>
-                <i data-feather="eye"></i>
-                Start Tracking
-            </button>
-            <button id="pair-device" class="control-btn">
-                <i data-feather="link"></i>
-                Pair with Laptop
-            </button>
-        </div>
+			<div class="controls">
+				<button id="toggle-camera" class="control-btn">
+					<i data-feather="video"></i>
+					Start Camera
+				</button>
+				<button id="toggle-tracking" class="control-btn" disabled>
+					<i data-feather="eye"></i>
+					Start Tracking
+				</button>
+				<button id="pair-device" class="control-btn">
+					<i data-feather="link"></i>
+					Pair with Laptop
+				</button>
+				<button id="mobile-download-models" class="control-btn">
+					<i data-feather="download-cloud"></i>
+					Download Models
+				</button>
+			</div>
 
-        <div id="biofeedback-panel" class="panel hidden">
-            <h3>Biofeedback</h3>
-            <div id="feedback-messages"></div>
-        </div>
+			<div id="biofeedback-panel" class="panel hidden">
+				<h3>Biofeedback</h3>
+				<div id="feedback-messages"></div>
+			</div>
 
-        <div id="pairing-panel" class="panel hidden">
-            <h3>Available Laptops</h3>
-            <ul id="available-laptops"></ul>
-        </div>
+			<div id="pairing-panel" class="panel hidden">
+				<h3>Available Laptops</h3>
+				<ul id="available-laptops"></ul>
+			</div>
 
-        <div class="metrics">
-            <div class="metric-box">
-                <h4>Heart Rate</h4>
-                <div id="heart-rate-value">-- BPM</div>
-            </div>
-            <div class="metric-box">
-                <h4>Eye Movement</h4>
-                <div id="eye-status">Not tracking</div>
-            </div>
-        </div>
-    </div>
+			<div class="metrics">
+				<div class="metric-box">
+					<h4>Heart Rate</h4>
+					<div id="heart-rate-value">-- BPM</div>
+				</div>
+				<div class="metric-box">
+					<h4>Eye Movement</h4>
+					<div id="eye-status">Not tracking</div>
+				</div>
+			</div>
+		</div>
 
-    <!-- Laptop Interface (hidden by default) -->
-    <div id="laptop-interface" class="interface-container hidden">
-        <div class="header">
-            <h2>Analytics Dashboard</h2>
-            <div id="laptop-connection-status" class="status not-connected">Not Connected</div>
-        </div>
+		<!-- Laptop Interface (hidden by default) -->
+		<div id="laptop-interface" class="interface-container hidden">
+			<div class="header">
+				<h2>Analytics Dashboard</h2>
+				<div id="laptop-connection-status" class="status not-connected">
+					Not Connected
+				</div>
+			</div>
 
-        <div class="dashboard-layout">
-            <div class="panel" id="eye-tracking-panel">
-                <h3>Eye Tracking Analysis</h3>
-                <div class="chart-container">
-                    <canvas id="eye-movement-chart"></canvas>
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <h4>Blink Rate</h4>
-                        <div id="blink-rate">-- blinks/min</div>
-                    </div>
-                    <div class="metric-box">
-                        <h4>Gaze Duration</h4>
-                        <div id="gaze-duration">-- seconds</div>
-                    </div>
-                    <div class="metric-box">
-                        <h4>Fatigue Index</h4>
-                        <div id="fatigue-index">--</div>
-                    </div>
-                </div>
-            </div>
+			<div class="dashboard-layout">
+				<div class="panel" id="eye-tracking-panel">
+					<h3>Eye Tracking Analysis</h3>
+					<div class="chart-container">
+						<canvas id="eye-movement-chart"></canvas>
+					</div>
+					<div class="metrics-grid">
+						<div class="metric-box">
+							<h4>Blink Rate</h4>
+							<div id="blink-rate">-- blinks/min</div>
+						</div>
+						<div class="metric-box">
+							<h4>Gaze Duration</h4>
+							<div id="gaze-duration">-- seconds</div>
+						</div>
+						<div class="metric-box">
+							<h4>Fatigue Index</h4>
+							<div id="fatigue-index">--</div>
+						</div>
+					</div>
+				</div>
 
-            <div class="panel" id="heart-rate-panel">
-                <h3>Heart Rate Monitoring</h3>
-                <div class="chart-container">
-                    <canvas id="heart-rate-chart"></canvas>
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <h4>Current</h4>
-                        <div id="current-hr">-- BPM</div>
-                    </div>
-                    <div class="metric-box">
-                        <h4>Average</h4>
-                        <div id="average-hr">-- BPM</div>
-                    </div>
-                    <div class="metric-box">
-                        <h4>Variability</h4>
-                        <div id="hr-variability">--</div>
-                    </div>
-                </div>
-            </div>
+				<div class="panel" id="eye-tracking-detail-panel">
+					<h3>Live Eye Tracking Visualization</h3>
+					<div class="visualization-container">
+						<canvas id="eye-tracking-viz" width="400" height="300"></canvas>
+					</div>
+					<div class="eye-metrics-grid">
+						<div class="metric-box">
+							<h4>Gaze Direction</h4>
+							<div id="gaze-direction">x: --, y: --</div>
+							<div id="gaze-text">Looking --</div>
+						</div>
+						<div class="metric-box">
+							<h4>Pupil Diameter</h4>
+							<div id="pupil-diameter">-- px (--)</div>
+						</div>
+						<div class="metric-box">
+							<h4>Head Rotation</h4>
+							<div id="head-rotation">P: --° Y: --° R: --°</div>
+						</div>
+						<div class="metric-box">
+							<h4>Head Movement</h4>
+							<div id="head-movement">x: --, y: --, z: --</div>
+						</div>
+					</div>
+				</div>
 
-            <div class="panel" id="analytics-panel">
-                <h3>Combined Analysis</h3>
-                <div class="chart-container">
-                    <canvas id="combined-chart"></canvas>
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <h4>Stress Level</h4>
-                        <div id="stress-level">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <h4>Attention Score</h4>
-                        <div id="attention-score">--</div>
-                    </div>
-                </div>
-            </div>
+				<div class="panel" id="heart-rate-panel">
+					<h3>Heart Rate Monitoring</h3>
+					<div class="chart-container">
+						<canvas id="heart-rate-chart"></canvas>
+					</div>
+					<div class="metrics-grid">
+						<div class="metric-box">
+							<h4>Current</h4>
+							<div id="current-hr">-- BPM</div>
+						</div>
+						<div class="metric-box">
+							<h4>Average</h4>
+							<div id="average-hr">-- BPM</div>
+						</div>
+						<div class="metric-box">
+							<h4>Variability</h4>
+							<div id="hr-variability">--</div>
+						</div>
+					</div>
+				</div>
 
-            <div class="panel" id="connection-panel">
-                <h3>Connected Devices</h3>
-                <ul id="connected-devices"></ul>
-                <div id="pairing-requests"></div>
-                <h4>Available Mobile Devices</h4>
-                <ul id="available-mobiles"></ul>
-            </div>
+				<div class="panel" id="emotion-panel">
+					<h3>Emotion Analysis</h3>
+					<div class="chart-container">
+						<canvas id="emotion-chart"></canvas>
+					</div>
+					<div class="metrics-grid">
+						<div class="metric-box">
+							<h4>Current Emotion</h4>
+							<div id="current-emotion">--</div>
+						</div>
+						<div class="metric-box">
+							<h4>Confidence</h4>
+							<div id="emotion-confidence">--%</div>
+						</div>
+					</div>
+				</div>
 
-            <div class="panel" id="feedback-panel">
-                <h3>Send Biofeedback</h3>
-                <div class="feedback-controls">
-                    <select id="feedback-type">
-                        <option value="alert">Alert</option>
-                        <option value="instruction">Instruction</option>
-                        <option value="status">Status Update</option>
-                    </select>
-                    <input type="text" id="feedback-message" placeholder="Enter feedback message">
-                    <button id="send-feedback" class="control-btn">Send</button>
-                </div>
-                <div class="feedback-history">
-                    <h4>Feedback History</h4>
-                    <ul id="feedback-history-list"></ul>
-                </div>
-            </div>
-        </div>
-    </div>
+				<div class="panel" id="analytics-panel">
+					<h3>Combined Analysis</h3>
+					<div class="chart-container">
+						<canvas id="combined-chart"></canvas>
+					</div>
+					<div class="metrics-grid">
+						<div class="metric-box">
+							<h4>Stress Level</h4>
+							<div id="stress-level">--</div>
+						</div>
+						<div class="metric-box">
+							<h4>Attention Score</h4>
+							<div id="attention-score">--</div>
+						</div>
+					</div>
+				</div>
 
-    <!-- Common Scripts -->
-    <script src="utils.js"></script>
-    <script src="webSocketUtils.js"></script>
-    <script src="eyeTracking.js"></script>
-    <script src="heartRateDetection.js"></script>
-    
-    <!-- Device Specific Scripts (loaded dynamically) -->
-    
-    <script>
-        // Initialize Feather icons
-        document.addEventListener('DOMContentLoaded', () => {
-            feather.replace();
-            
-            // Setup device selection
-            document.getElementById('mobile-btn').addEventListener('click', () => {
-                document.querySelector('.device-selector').classList.add('hidden');
-                document.getElementById('mobile-interface').classList.remove('hidden');
-                
-                // Dynamically load mobile script
-                const mobileScript = document.createElement('script');
-                mobileScript.src = 'mobile.js';
-                document.body.appendChild(mobileScript);
-                
-                mobileScript.onload = () => {
-                    initializeMobileInterface();
-                };
-            });
-            
-            document.getElementById('laptop-btn').addEventListener('click', () => {
-                document.querySelector('.device-selector').classList.add('hidden');
-                document.getElementById('laptop-interface').classList.remove('hidden');
-                
-                // Dynamically load laptop script
-                const laptopScript = document.createElement('script');
-                laptopScript.src = 'laptop.js';
-                document.body.appendChild(laptopScript);
-                
-                laptopScript.onload = () => {
-                    initializeLaptopInterface();
-                };
-            });
-        });
-    </script>
-</body>
+				<div class="panel" id="connection-panel">
+					<h3>Connected Devices</h3>
+					<ul id="connected-devices"></ul>
+					<div id="pairing-requests"></div>
+					<h4>Available Mobile Devices</h4>
+					<ul id="available-mobiles"></ul>
+				</div>
+
+				<div class="panel" id="feedback-panel">
+					<h3>Send Biofeedback</h3>
+					<div class="feedback-controls">
+						<select id="feedback-type">
+							<option value="alert">Alert</option>
+							<option value="instruction">Instruction</option>
+							<option value="status">Status Update</option>
+						</select>
+						<input
+							type="text"
+							id="feedback-message"
+							placeholder="Enter feedback message"
+						/>
+						<button id="send-feedback" class="control-btn">Send</button>
+					</div>
+					<div class="feedback-history">
+						<h4>Feedback History</h4>
+						<ul id="feedback-history-list"></ul>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Common Scripts -->
+		<script src="utils.js"></script>
+		<script src="webSocketUtils.js"></script>
+
+		<!-- Load after Face API -->
+		<script src="eyeTracking.js"></script>
+		<script src="heartRateDetection.js"></script>
+
+		<!-- Device Specific Scripts (loaded dynamically) -->
+
+		<script>
+			// Initialize Feather icons
+			document.addEventListener("DOMContentLoaded", () => {
+				// Suppress TensorFlow warnings to avoid console clutter
+				if (window.faceApiLoader) {
+					window.faceApiLoader.suppressTensorflowWarnings();
+				}
+
+				// Check if feather is defined before using it
+				if (typeof feather !== "undefined") {
+					feather.replace();
+				} else {
+					console.error("Feather icons library not loaded");
+					// Try to load it again
+					const featherScript = document.createElement("script");
+					featherScript.src =
+						"https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js";
+					featherScript.onload = () => feather.replace();
+					document.head.appendChild(featherScript);
+				}
+
+				// Pre-initialize face-api to load models early
+				if (window.faceApiLoader) {
+					window.faceApiLoader.initializeFaceApi().then((success) => {
+						console.log(
+							"Face API pre-initialization " +
+								(success ? "successful" : "failed")
+						);
+					});
+				}
+
+				// Add download models button event listeners
+				document
+					.getElementById("download-models-btn")
+					.addEventListener("click", () => {
+						if (typeof downloadFaceApiModels === "function") {
+							downloadFaceApiModels();
+						} else {
+							alert(
+								"Model download functionality not available. Please try again later."
+							);
+						}
+					});
+
+				// Setup mobile download button when interface is shown
+				document.getElementById("mobile-btn").addEventListener("click", () => {
+					// Once mobile interface is loaded, set up the model download button
+					setTimeout(() => {
+						const mobileDownloadBtn = document.getElementById(
+							"mobile-download-models"
+						);
+						if (mobileDownloadBtn) {
+							mobileDownloadBtn.addEventListener("click", () => {
+								if (typeof downloadFaceApiModels === "function") {
+									downloadFaceApiModels();
+								} else {
+									alert(
+										"Model download functionality not available. Please try again later."
+									);
+								}
+							});
+						}
+					}, 500);
+				});
+
+				// Check if models need to be downloaded on first load
+				setTimeout(() => {
+					if (typeof checkModelsDownloadNeeded === "function") {
+						checkModelsDownloadNeeded();
+					}
+				}, 2000);
+
+				// Setup device selection
+				document.getElementById("mobile-btn").addEventListener("click", () => {
+					document.querySelector(".device-selector").classList.add("hidden");
+					document
+						.getElementById("mobile-interface")
+						.classList.remove("hidden");
+
+					// Dynamically load mobile script
+					const mobileScript = document.createElement("script");
+					mobileScript.src = "mobile.js";
+					document.body.appendChild(mobileScript);
+
+					mobileScript.onload = () => {
+						initializeMobileInterface();
+					};
+				});
+
+				document.getElementById("laptop-btn").addEventListener("click", () => {
+					document.querySelector(".device-selector").classList.add("hidden");
+					document
+						.getElementById("laptop-interface")
+						.classList.remove("hidden");
+
+					// Dynamically load laptop script
+					const laptopScript = document.createElement("script");
+					laptopScript.src = "laptop.js";
+					document.body.appendChild(laptopScript);
+
+					laptopScript.onload = () => {
+						initializeLaptopInterface();
+					};
+				});
+			});
+		</script>
+	</body>
 </html>

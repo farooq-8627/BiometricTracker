@@ -56,6 +56,9 @@ wss.on("connection", (ws) => {
 				case "heart_rate_data":
 					handleHeartRateData(ws, data);
 					break;
+				case "emotion_data":
+					handleEmotionData(ws, data);
+					break;
 				case "biofeedback":
 					handleBiofeedback(ws, data);
 					break;
@@ -160,13 +163,84 @@ function handleEyeTrackingData(ws, data) {
 		const targetWs = wsClients.laptop.get(data.targetId);
 
 		if (targetWs) {
+			// Validate and sanitize tracking data before sending
+			const sanitizedData = sanitizeEyeTrackingData(data.trackingData);
+
 			sendToWebSocket(targetWs, {
 				type: "eye_tracking_update",
 				sourceId: ws.id,
-				data: data.trackingData,
+				data: sanitizedData,
 			});
 		}
 	}
+}
+
+// Helper function to validate and sanitize eye tracking data
+function sanitizeEyeTrackingData(trackingData) {
+	if (!trackingData) {
+		return {
+			blinkRate: 0,
+			saccadeVelocity: 0,
+			gazeDuration: 0,
+			pupilDilation: 0,
+			gazeDirection: { x: 0, y: 0 },
+			pupilDiameter: 4.0,
+			headDirection: { pitch: 0, yaw: 0, roll: 0 },
+			headPosition: { x: 0, y: 0, z: 0 },
+		};
+	}
+
+	// Create a copy to avoid modifying the original
+	const sanitized = { ...trackingData };
+
+	// Ensure basic eye tracking metrics exist
+	sanitized.blinkRate =
+		typeof sanitized.blinkRate === "number" ? sanitized.blinkRate : 0;
+	sanitized.saccadeVelocity =
+		typeof sanitized.saccadeVelocity === "number"
+			? sanitized.saccadeVelocity
+			: 0;
+	sanitized.gazeDuration =
+		typeof sanitized.gazeDuration === "number" ? sanitized.gazeDuration : 0;
+	sanitized.pupilDilation =
+		typeof sanitized.pupilDilation === "number" ? sanitized.pupilDilation : 0;
+
+	// Ensure new biometric data points exist and are valid
+
+	// Validate gaze direction
+	if (
+		!sanitized.gazeDirection ||
+		typeof sanitized.gazeDirection.x !== "number" ||
+		typeof sanitized.gazeDirection.y !== "number"
+	) {
+		sanitized.gazeDirection = { x: 0, y: 0 };
+	}
+
+	// Validate pupil diameter
+	sanitized.pupilDiameter =
+		typeof sanitized.pupilDiameter === "number" ? sanitized.pupilDiameter : 4.0;
+
+	// Validate head direction
+	if (
+		!sanitized.headDirection ||
+		typeof sanitized.headDirection.pitch !== "number" ||
+		typeof sanitized.headDirection.yaw !== "number" ||
+		typeof sanitized.headDirection.roll !== "number"
+	) {
+		sanitized.headDirection = { pitch: 0, yaw: 0, roll: 0 };
+	}
+
+	// Validate head position
+	if (
+		!sanitized.headPosition ||
+		typeof sanitized.headPosition.x !== "number" ||
+		typeof sanitized.headPosition.y !== "number" ||
+		typeof sanitized.headPosition.z !== "number"
+	) {
+		sanitized.headPosition = { x: 0, y: 0, z: 0 };
+	}
+
+	return sanitized;
 }
 
 function handleHeartRateData(ws, data) {
@@ -181,6 +255,78 @@ function handleHeartRateData(ws, data) {
 			});
 		}
 	}
+}
+
+// Handle emotion data from mobile device
+function handleEmotionData(ws, data) {
+	if (data.targetId) {
+		const targetWs = wsClients.laptop.get(data.targetId);
+
+		if (targetWs) {
+			// Validate emotion data
+			const sanitizedData = sanitizeEmotionData(data.emotionData);
+
+			sendToWebSocket(targetWs, {
+				type: "emotion_update",
+				sourceId: ws.id,
+				data: sanitizedData,
+			});
+		}
+	}
+}
+
+// Helper function to validate and sanitize emotion data
+function sanitizeEmotionData(emotionData) {
+	if (!emotionData) {
+		return {
+			happy: 0,
+			sad: 0,
+			angry: 0,
+			fearful: 0,
+			disgusted: 0,
+			surprised: 0,
+			neutral: 1,
+			dominant: "neutral",
+			dominantScore: 1,
+			timestamp: Date.now(),
+		};
+	}
+
+	// Create a copy to avoid modifying the original
+	const sanitized = { ...emotionData };
+
+	// Ensure all emotion values exist and are valid numbers between 0 and 1
+	const emotions = [
+		"happy",
+		"sad",
+		"angry",
+		"fearful",
+		"disgusted",
+		"surprised",
+		"neutral",
+	];
+	emotions.forEach((emotion) => {
+		sanitized[emotion] =
+			typeof sanitized[emotion] === "number"
+				? Math.max(0, Math.min(1, sanitized[emotion]))
+				: 0;
+	});
+
+	// Ensure dominant emotion exists and is valid
+	if (!sanitized.dominant || !emotions.includes(sanitized.dominant)) {
+		sanitized.dominant = "neutral";
+	}
+
+	// Ensure dominant score exists and is valid
+	sanitized.dominantScore =
+		typeof sanitized.dominantScore === "number"
+			? Math.max(0, Math.min(1, sanitized.dominantScore))
+			: 1;
+
+	// Ensure timestamp exists
+	sanitized.timestamp = sanitized.timestamp || Date.now();
+
+	return sanitized;
 }
 
 function handleBiofeedback(ws, data) {
@@ -298,6 +444,17 @@ io.on("connection", (socket) => {
 		}
 	});
 
+	// Handle emotion data
+	socket.on("emotion_data", (data) => {
+		// Forward emotion data to paired laptop
+		if (data.targetId) {
+			io.to(data.targetId).emit("emotion_update", {
+				sourceId: socket.id,
+				data: data.emotionData,
+			});
+		}
+	});
+
 	// Handle feedback from laptop to phone
 	socket.on("biofeedback", (data) => {
 		if (data.targetId) {
@@ -328,8 +485,8 @@ io.on("connection", (socket) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || "0.0.0.0";
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "localhost";
 
 // Check if we're running in a serverless environment like Vercel
 const isServerlessEnvironment = !!process.env.VERCEL;
