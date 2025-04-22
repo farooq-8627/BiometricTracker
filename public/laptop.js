@@ -1764,7 +1764,7 @@ function processEmotionData(data) {
 	console.log("Processing emotion data:", data);
 
 	// Validate data
-	if (!data || !data.emotions) {
+	if (!data) {
 		console.error("Invalid emotion data received:", data);
 		return;
 	}
@@ -1777,7 +1777,7 @@ function processEmotionData(data) {
 	// Add to data array
 	emotionData.push(data);
 	console.log(
-		`Added emotion data point. Dominant: ${data.dominantEmotion || "None"}`
+		`Added emotion data point. Dominant: ${data.dominant || "None"}`
 	);
 
 	// Limit the data array size
@@ -1809,28 +1809,26 @@ function updateEmotionChart(data) {
 	}
 
 	try {
-		// Get emotion values
-		const emotions = data.emotions;
-
-		if (!emotions) {
+		// Use emotion values directly from data object
+		if (!data) {
 			console.error("No emotion values in data");
 			return;
 		}
 
 		// Update emotion chart data
 		emotionChart.data.datasets[0].data = [
-			emotions.happy * 100,
-			emotions.sad * 100,
-			emotions.angry * 100,
-			emotions.fearful * 100,
-			emotions.disgusted * 100,
-			emotions.surprised * 100,
-			emotions.neutral * 100,
+			data.happy * 100,
+			data.sad * 100,
+			data.angry * 100,
+			data.fearful * 100,
+			data.disgusted * 100,
+			data.surprised * 100,
+			data.neutral * 100,
 		];
 
 		// Set the chart title to show dominant emotion
 		emotionChart.options.plugins.title.text = `Emotion Analysis: ${
-			data.dominantEmotion || "Neutral"
+			data.dominant || "Neutral"
 		}`;
 
 		// Update emotion chart
@@ -1911,7 +1909,7 @@ function setupEmotionChart() {
 
 // Update emotion metrics display
 function updateEmotionMetrics(data) {
-	if (!data || !data.emotions) {
+	if (!data) {
 		console.warn("No emotion data available to update metrics");
 		return;
 	}
@@ -1927,7 +1925,7 @@ function updateEmotionMetrics(data) {
 	}
 
 	// Update current emotion with dominant emotion
-	const dominantEmotion = data.dominantEmotion || "Neutral";
+	const dominantEmotion = data.dominant || "Neutral";
 	currentEmotionElement.textContent = dominantEmotion;
 	console.log(`Updated current emotion: ${dominantEmotion}`);
 
@@ -1954,8 +1952,7 @@ function updateEmotionMetrics(data) {
 	}
 
 	// Calculate confidence percentage for dominant emotion
-	const emotions = data.emotions;
-	const confidenceValue = emotions[dominantEmotion.toLowerCase()] * 100;
+	const confidenceValue = data.dominantScore * 100;
 	emotionConfidenceElement.textContent = `${Math.round(confidenceValue)}%`;
 	console.log(`Updated emotion confidence: ${Math.round(confidenceValue)}%`);
 
