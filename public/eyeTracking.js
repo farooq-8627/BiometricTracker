@@ -643,21 +643,27 @@ function calculateGazeDirection(leftEye, rightEye, headData) {
 	const leftEyeWidth = distance(leftEye[0], leftEye[3]);
 	const rightEyeWidth = distance(rightEye[0], rightEye[3]);
 
-	// Calculate raw gaze directions
-	const leftGazeX = (leftIris.x - leftEyeCenter.x) / (leftEyeWidth / 2);
+	// Calculate raw gaze directions with corrected left/right mapping
+	// Invert the X direction to match natural movement (negative is left, positive is right)
+	const leftGazeX = (-1 * (leftIris.x - leftEyeCenter.x)) / (leftEyeWidth / 2);
 	const leftGazeY = (leftIris.y - leftEyeCenter.y) / (leftEyeWidth / 2);
 
-	const rightGazeX = (rightIris.x - rightEyeCenter.x) / (rightEyeWidth / 2);
+	const rightGazeX =
+		(-1 * (rightIris.x - rightEyeCenter.x)) / (rightEyeWidth / 2);
 	const rightGazeY = (rightIris.y - rightEyeCenter.y) / (rightEyeWidth / 2);
 
 	// Average the gaze directions from both eyes
 	let gazeX = (leftGazeX + rightGazeX) / 2;
 	let gazeY = (leftGazeY + rightGazeY) / 2;
 
-	// Apply head pose compensation - a simplistic approach
-	// This adjusts gaze direction based on head rotation
-	gazeX += headData.rotation.yaw / 45; // Add yaw influence
-	gazeY -= headData.rotation.pitch / 45; // Add pitch influence
+	// Apply head pose compensation with corrected direction
+	// Invert yaw compensation to match the corrected gaze direction
+	const headCompensationX = (-1 * headData.rotation.yaw) / 45;
+	const headCompensationY = (-1 * headData.rotation.pitch) / 45;
+
+	// Apply head pose compensation
+	gazeX += headCompensationX;
+	gazeY += headCompensationY;
 
 	// Clamp values to reasonable range
 	gazeX = Math.max(-1, Math.min(1, gazeX));

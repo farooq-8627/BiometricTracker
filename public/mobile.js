@@ -869,17 +869,38 @@ function updateEyeTrackingMetrics(eyeData) {
 
 		// Create a text description of where the user is looking
 		let gazeDescription = "Looking ";
-		if (Math.abs(gazeX) < 0.2 && Math.abs(gazeY) < 0.2) {
+
+		// More precise thresholds for gaze direction
+		const centerThreshold = 0.2;
+		const horizontalThreshold = 0.2;
+		const verticalThreshold = 0.3;
+
+		if (
+			Math.abs(gazeX) < centerThreshold &&
+			Math.abs(gazeY) < centerThreshold
+		) {
 			gazeDescription += "center";
 		} else {
-			if (gazeY < -0.3) gazeDescription += "up";
-			else if (gazeY > 0.3) gazeDescription += "down";
+			const directions = [];
 
-			if (gazeX < -0.3)
-				gazeDescription += gazeY < -0.3 || gazeY > 0.3 ? " and left" : " left";
-			else if (gazeX > 0.3)
-				gazeDescription +=
-					gazeY < -0.3 || gazeY > 0.3 ? " and right" : " right";
+			// Vertical direction
+			if (Math.abs(gazeY) >= verticalThreshold) {
+				if (gazeY < 0) directions.push("up");
+				else directions.push("down");
+			}
+
+			// Horizontal direction - now correctly mapped
+			// Negative X is left, Positive X is right
+			if (Math.abs(gazeX) >= horizontalThreshold) {
+				if (gazeX < 0) directions.push("left");
+				else directions.push("right");
+			}
+
+			if (directions.length > 0) {
+				gazeDescription += directions.join(" and ");
+			} else {
+				gazeDescription += "center";
+			}
 		}
 
 		eyeStatus.textContent = gazeDescription;
