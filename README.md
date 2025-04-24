@@ -1,62 +1,100 @@
-# Eye Tracking & Heart Rate Monitoring System
+# BioVision - Biometric Tracking System
 
-A real-time biometric tracking system that monitors eye movements and heart rate. The application includes two interfaces:
+![BioVision Logo](generated-icon.png)
 
-1. **Mobile Interface** - For data collection (eye tracking and heart rate)
-2. **Laptop Interface** - For data visualization and analysis
+## Overview
+
+BioVision is an advanced biometric tracking system that enhances human-computer interaction through real-time monitoring of physiological signals using standard device cameras. The system utilizes computer vision and machine learning to track eye movements, detect heart rate, and analyze emotional states.
 
 ## Features
 
-- Real-time eye tracking using face-api.js
-- Heart rate monitoring using video processing
-- Real-time communication between paired devices
-- Data visualization using Chart.js
-- Biofeedback system
+- **Eye Tracking**: Blink detection, gaze direction, pupil dilation monitoring
+- **Heart Rate Monitoring**: Non-contact BPM estimation through facial video analysis
+- **Emotion Detection**: Recognition of seven basic emotions with confidence scoring
+- **Real-time Processing**: Client-side data processing for privacy and reduced latency
+- **Comprehensive Analytics**: Combined analysis of all biometric signals with visualizations
 
-## Technologies
+## Technology Stack
 
-- Node.js
-- Express
-- Socket.io
-- WebSocket
-- TensorFlow.js
-- Face-api.js
-- Chart.js
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Libraries**:
+  - TensorFlow.js for ML processing
+  - Face-API.js for facial detection
+  - Chart.js for data visualization
+  - Socket.io for real-time communication
+- **Backend**: Node.js, Express.js
 
-## Deployment Options
+## Architecture
 
-### Vercel (HTTPS without WebSocket support)
+BioVision employs a client-server architecture with two primary interfaces:
 
-You can deploy this application to Vercel for free HTTPS hosting, but WebSockets (used for real-time communication) are not supported in Vercel's serverless environment. The application may still work for demos, but without real-time functionality.
+1. **Mobile Interface**: Captures biometric data through the device's camera
+2. **Laptop Interface**: Displays comprehensive analytics and visualizations
 
-Follow these steps:
-1. Go to https://vercel.com 
-2. Sign up or log in with GitHub
-3. Import your repository
-4. Deploy with default settings
+Data flows between devices through WebSocket connections, ensuring real-time communication.
 
-### Railway.app or Heroku (Full HTTPS with WebSocket support)
+## Installation
 
-For full functionality including WebSockets:
+### Prerequisites
 
-#### Railway.app
-1. Sign up at https://railway.app
-2. Connect your GitHub repository
-3. Add a new service using your repository
-4. Railway automatically detects Node.js apps and deploys them
-5. Your app will be available at a https://your-app-name.up.railway.app domain
+- Node.js (v14.0.0 or higher)
+- NPM (v6.0.0 or higher)
+- Modern web browser with WebRTC support
 
-#### Heroku
-1. Sign up at https://www.heroku.com
-2. Create a new app
-3. Connect your GitHub repository
-4. Deploy the app
-5. Your app will be available at https://your-app-name.herokuapp.com
+### Setup
 
-### Local Testing with ngrok (Temporary HTTPS)
+1. Clone the repository:
 
-For temporary HTTPS during development:
-1. Run your app locally: `npm start`
-2. Install ngrok: `npm install -g ngrok`
-3. Tunnel to your local port: `ngrok http 5000`
-4. Use the HTTPS URL provided by ngrok
+   ```bash
+   git clone https://github.com/your-username/biometric-tracker.git
+   cd biometric-tracker
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open in browser:
+   - Navigate to `http://localhost:3000`
+   - Download ML models for offline use when prompted
+
+## Usage
+
+### Mobile Device
+
+1. Select "Phone" mode from the interface
+2. Grant camera permissions when prompted
+3. Use "Pair with Laptop" to establish connection
+
+### Laptop
+
+1. Select "Laptop" mode from the interface
+2. Accept pairing requests from mobile devices
+3. View real-time analytics and visualizations
+
+## Documentation
+
+For complete documentation, please see [documentation.md](documentation.md) which includes:
+
+- Detailed API documentation
+- Implementation details
+- Function descriptions
+- Project architecture
+
+## License
+
+[MIT License](LICENSE)
+
+## Acknowledgments
+
+- TensorFlow.js team for the machine learning framework
+- Face-API.js for the facial recognition capabilities
+- All contributors who helped build this project

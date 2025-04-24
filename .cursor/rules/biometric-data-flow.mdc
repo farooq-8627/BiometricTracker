@@ -1,0 +1,43 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Biometric Data Flow
+
+This document outlines the flow of biometric data through the system, from capture to processing to transmission.
+
+## Data Capture Pipeline
+
+1. **Video Input**
+   - Camera feed is accessed through [public/mobile.js](mdc:public/mobile.js)
+   - Video stream is processed at ~30fps for eye tracking
+   - Face detection runs continuously for emotion analysis
+
+2. **Data Processing**
+   - Eye tracking processes gaze direction and pupil metrics
+   - Heart rate detection runs every 2 seconds
+   - Emotion detection analyzes facial expressions using face-api.js
+   - All metrics are validated before transmission
+
+3. **Data Aggregation**
+   - Combined biometric data packet includes:
+     - Eye tracking metrics
+     - Heart rate and confidence
+     - Emotion analysis results
+     - Timestamp information
+
+## Real-time Processing
+
+The system maintains several concurrent processing loops:
+- Eye tracking interval (30fps)
+- Heart rate detection (every 2 seconds)
+- Combined data transmission (5 times per second)
+
+## Data Validation
+
+Each type of biometric data undergoes validation:
+- Heart rate data is checked for reasonable ranges (40-200 BPM)
+- Eye tracking data includes confidence metrics
+- Emotion detection includes normalized scores
+- All data includes timestamps for synchronization

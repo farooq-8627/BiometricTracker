@@ -1,0 +1,45 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Mobile Interface Architecture
+
+The mobile interface is responsible for capturing and processing biometric data from the device's camera. The main implementation is in [public/mobile.js](mdc:public/mobile.js).
+
+## Key Components
+
+1. **Connection Management**
+   - Implements both WebSocket and Socket.io fallback
+   - Handles device pairing with laptops
+   - Manages connection status updates
+
+2. **Camera and Video Processing**
+   - Camera stream management
+   - Video element handling
+   - Canvas overlay for visualization
+
+3. **Biometric Tracking**
+   - Eye tracking with gaze detection
+   - Heart rate monitoring
+   - Emotion detection using face-api.js
+   - Real-time metrics display
+
+4. **Data Transmission**
+   - Sends combined biometric data to paired laptops
+   - Supports both individual and aggregated data streams
+   - Handles data validation and error recovery
+
+## Important Functions
+
+- `initializeMobileInterface()`: Entry point for mobile interface setup
+- `startTracking()`: Begins biometric data collection
+- `processEyeTracking()`: Handles eye tracking analysis
+- `detectEmotions()`: Processes facial expressions
+- `detectHeartRate()`: Monitors heart rate
+
+## Error Handling
+The interface includes fallback mechanisms for:
+- WebSocket to Socket.io failover
+- Heart rate detection simulation when actual detection fails
+- Face detection recovery

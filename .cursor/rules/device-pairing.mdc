@@ -1,0 +1,45 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Device Pairing System
+
+The system implements a robust device pairing mechanism between mobile devices and laptops, managed through [public/mobile.js](mdc:public/mobile.js).
+
+## Pairing Process
+
+1. **Discovery**
+   - Mobile devices discover available laptops
+   - Laptops are displayed with truncated IDs
+   - Real-time updates for laptop availability
+
+2. **Connection Establishment**
+   - Primary WebSocket connection with Socket.io fallback
+   - Automatic reconnection handling
+   - Connection status monitoring
+
+3. **Pairing Protocol**
+   - Two-way confirmation required
+   - Queue system for multiple pairing requests
+   - Automatic cleanup of stale requests
+
+## Security Considerations
+
+- Pairing requires explicit user confirmation
+- Connection tokens are validated
+- Paired connections are maintained until explicitly terminated
+
+## UI Integration
+
+- Real-time status updates
+- Clear visual indicators of connection state
+- Easy-to-use pairing interface
+- Feedback for all pairing actions
+
+## Error Recovery
+
+- Automatic reconnection attempts
+- Graceful handling of disconnections
+- Clear user feedback on connection issues
+- Maintenance of pairing state during temporary disconnections
