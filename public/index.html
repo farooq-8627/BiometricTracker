@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Eye Tracking & Heart Rate Monitoring System</title>
+		<title>Remote Work Analysis System</title>
 		<link rel="stylesheet" href="styles.css" />
 		<!-- TensorFlow.js for ML processing -->
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
@@ -17,6 +17,9 @@
 		<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 		<!-- Face API - single library instance used throughout the application -->
 		<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+		<!-- AOS Animation library -->
+		<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+		<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 		<!-- Centralized Face API Loader -->
 		<script src="faceApiLoader.js"></script>
 		<!-- Model downloader script -->
@@ -24,33 +27,168 @@
 	</head>
 	<body>
 		<div class="device-selector">
-			<h1>Eye Tracking & Heart Rate Monitoring System</h1>
-			<p>Select your device type:</p>
-			<div class="button-container">
-				<button id="mobile-btn" class="device-btn">
-					<i data-feather="smartphone"></i>
-					Phone
-				</button>
-				<button id="laptop-btn" class="device-btn">
-					<i data-feather="monitor"></i>
-					Laptop
-				</button>
+			<div class="home-header" data-aos="fade-down" data-aos-duration="1000">
+				<h1>Remote Work Analysis System</h1>
+				<p class="subtitle">
+					Monitor focus, stress levels, and emotions in real-time
+				</p>
+				<div class="authors">
+					<p>
+						By: Shaik Akhib Usman, Pothireddy Charishma, Cherukuri Sirichandana,
+						Shaik Umar Farooq
+					</p>
+					<p>Under the guidance of Prof. Debabrata Senapati</p>
+					<p>Department of Computer Science & Engineering, SRM University-AP</p>
+				</div>
 			</div>
-			<div class="download-models-container">
-				<button id="download-models-btn" class="support-btn">
-					<i data-feather="download-cloud"></i>
-					Download ML Models
-				</button>
-				<p class="download-note">
-					Download models for offline use and better emotion detection
+
+			<div class="home-content">
+				<div
+					class="home-description"
+					data-aos="fade-right"
+					data-aos-duration="1000"
+				>
+					<h2>Enhance Remote Productivity</h2>
+					<p>Our advanced biometric system uses AI to track:</p>
+					<ul class="feature-list">
+						<li class="animate-feature">
+							<i data-feather="eye"></i> Eye movement and attention
+						</li>
+						<li class="animate-feature">
+							<i data-feather="heart"></i> Stress levels via heart rate
+						</li>
+						<li class="animate-feature">
+							<i data-feather="smile"></i> Emotional engagement
+						</li>
+					</ul>
+					<p>
+						Make data-driven decisions about remote work eligibility and provide
+						targeted support to employees who need it.
+					</p>
+				</div>
+
+				<div class="home-visual" data-aos="fade-left" data-aos-duration="1000">
+					<div class="visual-placeholder">
+						<i data-feather="monitor" class="large-icon"></i>
+						<i data-feather="activity" class="overlay-icon pulse-animation"></i>
+						<i data-feather="eye" class="overlay-icon blink-animation"></i>
+						<div class="brain-waves"></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="project-details" data-aos="fade-up" data-aos-duration="1000">
+				<h2>Project Overview</h2>
+				<div class="details-grid">
+					<div class="detail-card">
+						<div class="card-icon"><i data-feather="target"></i></div>
+						<h3>Objective</h3>
+						<p>
+							Develop a real-time monitoring system to analyze cognitive and
+							emotional states in work-from-home environments, aiming to enhance
+							focus and productivity.
+						</p>
+					</div>
+					<div class="detail-card">
+						<div class="card-icon"><i data-feather="layers"></i></div>
+						<h3>System Architecture</h3>
+						<p>
+							A three-component architecture: Tracker (data capture), Dashboard
+							(analysis & visualization), and Communication Layer (real-time
+							data exchange).
+						</p>
+					</div>
+					<div class="detail-card">
+						<div class="card-icon"><i data-feather="cpu"></i></div>
+						<h3>Technology</h3>
+						<p>
+							Integrates computer vision, deep learning, and real-time data
+							processing to track eye movements, estimate heart rate, and
+							analyze facial expressions.
+						</p>
+					</div>
+					<div class="detail-card">
+						<div class="card-icon"><i data-feather="bar-chart-2"></i></div>
+						<h3>Applications</h3>
+						<p>
+							Organizations can monitor engagement, provide timely support,
+							identify focus patterns, and make data-driven decisions about
+							remote work eligibility.
+						</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="system-workflow" data-aos="zoom-in" data-aos-duration="1000">
+				<h2>How It Works</h2>
+				<div class="workflow-diagram">
+					<div class="workflow-step">
+						<div class="step-number">1</div>
+						<div class="step-icon"><i data-feather="camera"></i></div>
+						<div class="step-description">
+							Data Acquisition<br />Captures facial video for eye tracking and
+							emotion analysis
+						</div>
+					</div>
+					<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
+					<div class="workflow-step">
+						<div class="step-number">2</div>
+						<div class="step-icon"><i data-feather="cpu"></i></div>
+						<div class="step-description">
+							Real-time Processing<br />Analyzes eye movements, heart rate, and
+							emotional states
+						</div>
+					</div>
+					<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
+					<div class="workflow-step">
+						<div class="step-number">3</div>
+						<div class="step-icon"><i data-feather="trending-up"></i></div>
+						<div class="step-description">
+							Dashboard Visualization<br />Displays metrics and insights for
+							monitoring
+						</div>
+					</div>
+					<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
+					<div class="workflow-step">
+						<div class="step-number">4</div>
+						<div class="step-icon"><i data-feather="zap"></i></div>
+						<div class="step-description">
+							Actionable Insights<br />Enables data-driven decisions and
+							interventions
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="device-selection" data-aos="fade-up" data-aos-duration="1000">
+				<h3>Select your device type to begin:</h3>
+				<div class="button-container">
+					<button id="mobile-btn" class="device-btn">
+						<i data-feather="smartphone"></i>
+						Tracker
+					</button>
+					<button id="laptop-btn" class="device-btn">
+						<i data-feather="monitor"></i>
+						Dashboard
+					</button>
+				</div>
+			</div>
+
+			<div class="home-footer">
+				<p>
+					Designed for organizations with remote employees to ensure engagement
+					and productivity
+				</p>
+				<p class="copyright">
+					© 2025 SRM University-AP, Department of Computer Science & Engineering
 				</p>
 			</div>
 		</div>
 
 		<!-- Mobile Interface (hidden by default) -->
-		<div id="mobile-interface" class="interface-container hidden">
+		<div id="tracker-interface" class="interface-container hidden">
 			<div class="header">
-				<h2>Mobile Data Collection</h2>
+				<h2>Tracker Data Collection</h2>
 				<div id="connection-status" class="status not-connected">
 					Not Connected
 				</div>
@@ -72,9 +210,9 @@
 				</button>
 				<button id="pair-device" class="control-btn">
 					<i data-feather="link"></i>
-					Pair with Laptop
+					Pair with Dashboard
 				</button>
-				<button id="mobile-download-models" class="control-btn">
+				<button id="tracker-download-models" class="control-btn">
 					<i data-feather="download-cloud"></i>
 					Download Models
 				</button>
@@ -86,7 +224,7 @@
 			</div>
 
 			<div id="pairing-panel" class="panel hidden">
-				<h3>Available Laptops</h3>
+				<h3>Available Dashboards</h3>
 				<ul id="available-laptops"></ul>
 			</div>
 
@@ -230,7 +368,7 @@
 					<h3>Connected Devices</h3>
 					<ul id="connected-devices"></ul>
 					<div id="pairing-requests"></div>
-					<h4>Available Mobile Devices</h4>
+					<h4>Available Tracker Devices</h4>
 					<ul id="available-mobiles"></ul>
 				</div>
 
@@ -268,8 +406,19 @@
 		<!-- Device Specific Scripts (loaded dynamically) -->
 
 		<script>
-			// Initialize Feather icons
+			// Initialize Feather icons and AOS animations
 			document.addEventListener("DOMContentLoaded", () => {
+				// Initialize AOS animations
+				AOS.init();
+
+				// Add sequential animation to feature list
+				const features = document.querySelectorAll(".animate-feature");
+				features.forEach((feature, index) => {
+					setTimeout(() => {
+						feature.classList.add("animate-in");
+					}, 500 + index * 300);
+				});
+
 				// Suppress TensorFlow warnings to avoid console clutter
 				if (window.faceApiLoader) {
 					window.faceApiLoader.suppressTensorflowWarnings();
@@ -298,38 +447,20 @@
 					});
 				}
 
-				// Add download models button event listeners
-				document
-					.getElementById("download-models-btn")
-					.addEventListener("click", () => {
-						if (typeof downloadFaceApiModels === "function") {
-							downloadFaceApiModels();
-						} else {
-							alert(
-								"Model download functionality not available. Please try again later."
-							);
-						}
-					});
-
 				// Setup mobile download button when interface is shown
 				document.getElementById("mobile-btn").addEventListener("click", () => {
-					// Once mobile interface is loaded, set up the model download button
-					setTimeout(() => {
-						const mobileDownloadBtn = document.getElementById(
-							"mobile-download-models"
-						);
-						if (mobileDownloadBtn) {
-							mobileDownloadBtn.addEventListener("click", () => {
-								if (typeof downloadFaceApiModels === "function") {
-									downloadFaceApiModels();
-								} else {
-									alert(
-										"Model download functionality not available. Please try again later."
-									);
-								}
+					// Once tracker interface is loaded, set up the model download button
+					// to fetch all required ML models
+					const trackerDownloadBtn = document.getElementById(
+						"tracker-download-models"
+					);
+					if (trackerDownloadBtn) {
+						trackerDownloadBtn.addEventListener("click", () => {
+							loadFaceApiModels().then(() => {
+								alert("Models downloaded successfully!");
 							});
-						}
-					}, 500);
+						});
+					}
 				});
 
 				// Check if models need to be downloaded on first load
@@ -339,19 +470,21 @@
 					}
 				}, 2000);
 
-				// Setup device selection
+				// Device selection
 				document.getElementById("mobile-btn").addEventListener("click", () => {
-					document.querySelector(".device-selector").classList.add("hidden");
 					document
-						.getElementById("mobile-interface")
+						.querySelectorAll(".interface-container")
+						.forEach((el) => el.classList.add("hidden"));
+					document
+						.getElementById("tracker-interface")
 						.classList.remove("hidden");
 
-					// Dynamically load mobile script
-					const mobileScript = document.createElement("script");
-					mobileScript.src = "mobile.js";
-					document.body.appendChild(mobileScript);
+					// Dynamically load tracker script
+					const trackerScript = document.createElement("script");
+					trackerScript.src = "mobile.js";
+					document.body.appendChild(trackerScript);
 
-					mobileScript.onload = () => {
+					trackerScript.onload = () => {
 						initializeMobileInterface();
 					};
 				});

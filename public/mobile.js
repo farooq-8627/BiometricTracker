@@ -1,4 +1,4 @@
-// Global variables for mobile interface
+// Global variables for tracker interface
 let socket; // Socket.io socket
 let ws; // WebSocket connection
 let cameraStream = null;
@@ -17,9 +17,9 @@ let forceRealHeartRate = true; // Force "real" heart rate values even when detec
 // Global variable to store the latest face detection result from eye tracking
 window.latestFaceDetectionResult = null;
 
-// Initialize the mobile interface
+// Initialize the tracker interface
 function initializeMobileInterface() {
-	console.log("Initializing mobile interface...");
+	console.log("Initializing tracker interface...");
 
 	// Get DOM elements
 	videoElement = document.getElementById("camera-feed");
@@ -29,7 +29,7 @@ function initializeMobileInterface() {
 	// Try to establish WebSocket connection first
 	try {
 		ws = initializeWebSocket();
-		setupMobileWebSocketHandlers(ws, {
+		setupTrackerWebSocketHandlers(ws, {
 			onAvailableLaptops: displayAvailableLaptops,
 			onLaptopDisconnected: (laptopId) => {
 				removeAvailableLaptop(laptopId);
@@ -47,7 +47,7 @@ function initializeMobileInterface() {
 			onPairConfirmed: (laptopId) => {
 				console.log("Pairing confirmed with laptop:", laptopId);
 				pairedLaptopId = laptopId;
-				updateConnectionStatus("Paired with laptop", "connected");
+				updateConnectionStatus("Paired with dashboard", "connected");
 				hidePairingPanel();
 				document.getElementById("biofeedback-panel").classList.remove("hidden");
 			},
@@ -57,11 +57,11 @@ function initializeMobileInterface() {
 			},
 		});
 
-		// Register as mobile device via WebSocket
+		// Register as tracker device via WebSocket
 		ws.onopen = () => {
 			console.log("WebSocket connection established");
 			updateConnectionStatus("Connected to server via WebSocket", "connected");
-			registerDevice(ws, "mobile");
+			registerDevice(ws, "tracker");
 			useWebSocket = true;
 		};
 
@@ -151,8 +151,8 @@ function setupSocketListeners() {
 		console.log("Connected to server with ID:", socket.id);
 		updateConnectionStatus("Connected to server", "connected");
 
-		// Register as a mobile device
-		socket.emit("register", "mobile");
+		// Register as a tracker device
+		socket.emit("register", "tracker");
 	});
 
 	socket.on("disconnect", () => {
@@ -193,7 +193,7 @@ function setupSocketListeners() {
 	socket.on("pair_confirmed", (laptopId) => {
 		console.log("Pairing confirmed with laptop:", laptopId);
 		pairedLaptopId = laptopId;
-		updateConnectionStatus("Paired with laptop", "connected");
+		updateConnectionStatus("Paired with dashboard", "connected");
 		hidePairingPanel();
 
 		// Show biofeedback panel when paired
@@ -946,7 +946,22 @@ function displayBiofeedback(feedback) {
 function updateConnectionStatus(message, status) {
 	const statusElement = document.getElementById("connection-status");
 	statusElement.textContent = message;
-	statusElement.className = `status ${status}`;
+
+	// Clear existing status classes
+	statusElement.classList.remove(
+		"not-connected",
+		"connecting",
+		"connected",
+		"paired-with-dashboard"
+	);
+
+	// Apply the appropriate status class
+	if (status === "connected" && message.includes("Paired with")) {
+		statusElement.classList.add("paired-with-dashboard");
+		statusElement.textContent = "Paired with dashboard";
+	} else {
+		statusElement.classList.add(status);
+	}
 }
 
 // Clean up resources when leaving the page

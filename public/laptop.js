@@ -31,32 +31,32 @@ function initializeLaptopInterface() {
 				if (pairedMobileId === mobileId) {
 					pairedMobileId = null;
 					updateConnectionStatus(
-						"Paired mobile device disconnected",
+						"Paired tracker device disconnected",
 						"not-connected"
 					);
 					resetData();
 				}
 			},
 			onPairRequest: (mobileId) => {
-				console.log("Received pairing request from mobile device:", mobileId);
+				console.log("Received pairing request from tracker device:", mobileId);
 				if (
 					confirm(
-						`Mobile device (${mobileId.substring(
+						`Tracker device (${mobileId.substring(
 							0,
 							8
-						)}...) wants to pair with your laptop. Accept?`
+						)}...) wants to pair with your dashboard. Accept?`
 					)
 				) {
-					acceptPairRequest(ws, mobileId);
+					socket.emit("pair_accept", mobileId);
 					pairedMobileId = mobileId;
-					updateConnectionStatus("Paired with mobile device", "connected");
+					updateConnectionStatus("Paired with tracker device", "connected");
 					addToConnectedDevices(mobileId);
 				}
 			},
 			onPairConfirmed: (mobileId) => {
-				console.log("Pairing confirmed with mobile device:", mobileId);
+				console.log("Pairing confirmed with tracker device:", mobileId);
 				pairedMobileId = mobileId;
-				updateConnectionStatus("Paired with mobile device", "connected");
+				updateConnectionStatus("Paired with tracker device", "connected");
 				addToConnectedDevices(mobileId);
 			},
 			onEyeTrackingUpdate: (sourceId, data) => {
@@ -73,7 +73,7 @@ function initializeLaptopInterface() {
 					data
 				);
 				if (sourceId === pairedMobileId) {
-					console.log("Processing heart rate data from paired mobile:", data);
+					console.log("Processing heart rate data from paired tracker:", data);
 					processHeartRateData(data);
 				} else {
 					console.warn(
@@ -195,23 +195,23 @@ function setupSocketListeners() {
 
 	// Handle mobile connection events
 	socket.on("available_mobiles", (mobiles) => {
-		console.log("Available mobile devices:", mobiles);
+		console.log("Available tracker devices:", mobiles);
 		displayAvailableMobiles(mobiles);
 	});
 
 	socket.on("mobile_connected", (mobileId) => {
-		console.log("New mobile device connected:", mobileId);
+		console.log("New tracker device connected:", mobileId);
 		addAvailableMobile(mobileId);
 	});
 
 	socket.on("mobile_disconnected", (mobileId) => {
-		console.log("Mobile device disconnected:", mobileId);
+		console.log("Tracker device disconnected:", mobileId);
 		removeAvailableMobile(mobileId);
 
 		if (pairedMobileId === mobileId) {
 			pairedMobileId = null;
 			updateConnectionStatus(
-				"Paired mobile device disconnected",
+				"Paired tracker device disconnected",
 				"not-connected"
 			);
 			resetData();
@@ -220,27 +220,27 @@ function setupSocketListeners() {
 
 	// Handle pairing events
 	socket.on("pair_request", (mobileId) => {
-		console.log("Received pairing request from mobile device:", mobileId);
+		console.log("Received pairing request from tracker device:", mobileId);
 
 		if (
 			confirm(
-				`Mobile device (${mobileId.substring(
+				`Tracker device (${mobileId.substring(
 					0,
 					8
-				)}...) wants to pair with your laptop. Accept?`
+				)}...) wants to pair with your dashboard. Accept?`
 			)
 		) {
 			socket.emit("pair_accept", mobileId);
 			pairedMobileId = mobileId;
-			updateConnectionStatus("Paired with mobile device", "connected");
+			updateConnectionStatus("Paired with tracker device", "connected");
 			addToConnectedDevices(mobileId);
 		}
 	});
 
 	socket.on("pair_confirmed", (mobileId) => {
-		console.log("Pairing confirmed with mobile device:", mobileId);
+		console.log("Pairing confirmed with tracker device:", mobileId);
 		pairedMobileId = mobileId;
-		updateConnectionStatus("Paired with mobile device", "connected");
+		updateConnectionStatus("Paired with tracker device", "connected");
 		addToConnectedDevices(mobileId);
 	});
 
@@ -259,7 +259,7 @@ function setupSocketListeners() {
 
 		// Process and display heart rate data
 		if (data.sourceId === pairedMobileId) {
-			console.log("Processing heart rate data from paired mobile", data.data);
+			console.log("Processing heart rate data from paired tracker", data.data);
 			processHeartRateData(data.data);
 		} else {
 			console.warn(
@@ -293,7 +293,7 @@ function setupUIEventListeners() {
 		}
 
 		if (!pairedMobileId) {
-			alert("No mobile device paired");
+			alert("No tracker device paired");
 			return;
 		}
 
@@ -624,14 +624,14 @@ function displayAvailableMobiles(mobiles) {
 	mobilesList.innerHTML = "";
 
 	if (mobiles.length === 0) {
-		mobilesList.innerHTML = "<li>No mobile devices available for pairing</li>";
+		mobilesList.innerHTML = "<li>No tracker devices available for pairing</li>";
 		return;
 	}
 
 	mobiles.forEach((mobileId) => {
 		const listItem = document.createElement("li");
 		listItem.dataset.id = mobileId;
-		listItem.textContent = `Mobile Device (${mobileId.substring(0, 8)}...)`;
+		listItem.textContent = `Tracker Device (${mobileId.substring(0, 8)}...)`;
 
 		const pairButton = document.createElement("button");
 		pairButton.className = "control-btn";
@@ -653,14 +653,14 @@ function addAvailableMobile(mobileId) {
 	if (
 		mobilesList
 			.querySelector("li")
-			?.textContent.includes("No mobile devices available")
+			?.textContent.includes("No tracker devices available")
 	) {
 		mobilesList.innerHTML = "";
 	}
 
 	const listItem = document.createElement("li");
 	listItem.dataset.id = mobileId;
-	listItem.textContent = `Mobile Device (${mobileId.substring(0, 8)}...)`;
+	listItem.textContent = `Tracker Device (${mobileId.substring(0, 8)}...)`;
 
 	const pairButton = document.createElement("button");
 	pairButton.className = "control-btn";
@@ -686,7 +686,7 @@ function removeAvailableMobile(mobileId) {
 
 	// Check if the list is now empty
 	if (mobilesList.children.length === 0) {
-		mobilesList.innerHTML = "<li>No mobile devices available for pairing</li>";
+		mobilesList.innerHTML = "<li>No tracker devices available for pairing</li>";
 	}
 }
 
@@ -714,7 +714,7 @@ function addToConnectedDevices(deviceId) {
 
 	const listItem = document.createElement("li");
 	listItem.dataset.id = deviceId;
-	listItem.textContent = `Mobile Device (${deviceId.substring(0, 8)}...)`;
+	listItem.textContent = `Tracker Device (${deviceId.substring(0, 8)}...)`;
 
 	const disconnectButton = document.createElement("button");
 	disconnectButton.className = "control-btn";
@@ -746,7 +746,7 @@ function removeFromConnectedDevices(deviceId) {
 
 // Request pairing with a mobile device
 function requestPairing(mobileId) {
-	console.log("Requesting pairing with mobile device:", mobileId);
+	console.log("Requesting pairing with tracker device:", mobileId);
 	if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
 		sendPairRequest(ws, mobileId);
 	} else if (socket && socket.connected) {
@@ -759,7 +759,7 @@ function requestPairing(mobileId) {
 function disconnectDevice(deviceId) {
 	if (pairedMobileId === deviceId) {
 		pairedMobileId = null;
-		updateConnectionStatus("Disconnected from mobile device", "not-connected");
+		updateConnectionStatus("Disconnected from tracker device", "not-connected");
 		removeFromConnectedDevices(deviceId);
 		resetData();
 	}
@@ -1626,7 +1626,7 @@ function updateCombinedMetrics() {
 // Send biofeedback to the mobile device
 function sendBiofeedback(type, message) {
 	if (!pairedMobileId) {
-		console.error("Cannot send feedback: no paired mobile device");
+		console.error("Cannot send feedback: no paired tracker device");
 		return;
 	}
 
@@ -1636,7 +1636,7 @@ function sendBiofeedback(type, message) {
 		timestamp: new Date().toISOString(),
 	};
 
-	// Send feedback to paired mobile device
+	// Send feedback to paired tracker device
 	if (useWebSocket && ws && ws.readyState === WebSocket.OPEN) {
 		// Use the utility function from webSocketUtils.js with correct parameters
 		sendBiofeedbackData(ws, pairedMobileId, feedback);
@@ -1760,7 +1760,22 @@ function resetData() {
 function updateConnectionStatus(message, status) {
 	const statusElement = document.getElementById("laptop-connection-status");
 	statusElement.textContent = message;
-	statusElement.className = `status ${status}`;
+
+	// Clear existing status classes
+	statusElement.classList.remove(
+		"not-connected",
+		"connecting",
+		"connected",
+		"paired-with-tracker"
+	);
+
+	// Apply the appropriate status class
+	if (status === "connected" && message.includes("Paired with")) {
+		statusElement.classList.add("paired-with-tracker");
+		statusElement.textContent = "Paired with tracker device";
+	} else {
+		statusElement.classList.add(status);
+	}
 }
 
 // Helper function to calculate standard deviation
