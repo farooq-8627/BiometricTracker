@@ -240,3 +240,6 @@ function setupLaptopWebSocketHandlers(ws, handlers) {
 		}
 	};
 }
+
+// Setup tracker WebSocket handlers - alias for mobile handlers for backward compatibility
+const setupTrackerWebSocketHandlers = setupMobileWebSocketHandlers;

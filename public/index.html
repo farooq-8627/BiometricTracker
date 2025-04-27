@@ -432,6 +432,16 @@
 		<!-- Common Scripts -->
 		<script src="utils.js"></script>
 		<script src="webSocketUtils.js"></script>
+		<script>
+			// Make sure Socket.io is loaded and available
+			if (typeof io === "undefined" && typeof window.io === "undefined") {
+				console.log("Loading Socket.io dynamically");
+				const socketScript = document.createElement("script");
+				socketScript.src =
+					"https://cdn.jsdelivr.net/npm/socket.io/4.4.1/socket.io.min.js";
+				document.head.appendChild(socketScript);
+			}
+		</script>
 
 		<!-- Load after Face API -->
 		<script src="eyeTracking.js"></script>

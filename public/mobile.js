@@ -83,10 +83,28 @@ function initializeMobileInterface() {
 
 // Fall back to Socket.io if WebSocket fails
 function fallbackToSocketIO() {
+	// Check if Socket.io is available
+	if (typeof io === "undefined") {
+		console.error(
+			"Socket.io not available. Make sure the Socket.io library is loaded."
+		);
+		// Try again after a short delay to see if library loads
+		setTimeout(fallbackToSocketIO, 1000);
+		return;
+	}
+
 	// Initialize Socket.io connection
 	const socketUrl = `${window.location.protocol}//${window.location.host}`;
-	socket = io(socketUrl);
-	setupSocketListeners();
+	console.log(`Connecting to Socket.io at ${socketUrl}`);
+
+	try {
+		socket = io(socketUrl);
+		setupSocketListeners();
+	} catch (error) {
+		console.error("Error initializing Socket.io:", error);
+		// Show connection error on UI
+		updateConnectionStatus("Failed to connect to server", "not-connected");
+	}
 }
 
 // Load ML models required for eye tracking and heart rate detection
