@@ -673,3 +673,317 @@ p {
 }
 
 /* Keep other interface styles from the original CSS */
+
+/* ============================
+   Tracker and Dashboard UI Match
+   ============================ */
+
+/* Interface Containers - dark theme */
+.interface-container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1.5rem;
+	background-color: var(--dark-bg);
+	color: var(--text-color);
+}
+
+/* Headers */
+.interface-container .header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.interface-container .header h2 {
+	color: var(--text-color);
+	background: linear-gradient(
+		135deg,
+		var(--text-color) 0%,
+		var(--secondary-color) 100%
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Status Indicators */
+.interface-container .status {
+	padding: 0.5rem 1rem;
+	border-radius: 20px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	display: inline-block;
+}
+
+.interface-container .not-connected {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: var(--muted-text);
+}
+
+.interface-container .connecting {
+	background-color: rgba(243, 156, 18, 0.2);
+	color: #f39c12;
+}
+
+.interface-container .connected,
+.interface-container .paired-with-tracker,
+.interface-container .paired-with-dashboard {
+	background-color: rgba(46, 204, 113, 0.2);
+	color: #2ecc71;
+}
+
+/* Panels */
+.interface-container .panel {
+	background-color: var(--card-bg);
+	border-radius: var(--border-radius);
+	box-shadow: var(--card-shadow);
+	padding: 1.5rem;
+	margin-bottom: 1.5rem;
+	border-left: 3px solid var(--primary-color);
+}
+
+.interface-container .panel h3 {
+	margin-bottom: 1.25rem;
+	color: var(--text-color);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	padding-bottom: 0.75rem;
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 1.5rem;
+	margin-top: 2rem;
+}
+
+/* Video Container for Tracker */
+.interface-container .video-container {
+	position: relative;
+	width: 100%;
+	max-width: 500px;
+	margin: 0 auto 1.5rem;
+	border-radius: var(--border-radius);
+	overflow: hidden;
+	box-shadow: var(--card-shadow);
+	background-color: #000;
+}
+
+/* Metrics and Data Display */
+.interface-container .metric-box {
+	background-color: var(--card-bg);
+	padding: 1rem;
+	border-radius: var(--border-radius);
+	box-shadow: var(--card-shadow);
+	text-align: center;
+	min-width: 120px;
+}
+
+.interface-container .metric-box h4 {
+	margin-bottom: 0.5rem;
+	color: var(--light-text);
+	font-size: 0.875rem;
+}
+
+.interface-container .metrics {
+	display: flex;
+	justify-content: center;
+	gap: 2rem;
+	margin-top: 1.5rem;
+}
+
+/* Charts and Visualization Areas */
+.interface-container .chart-container {
+	width: 100%;
+	height: 200px;
+	margin-bottom: 1rem;
+	background-color: rgba(45, 45, 57, 0.7);
+	padding: 10px;
+	border-radius: var(--small-radius);
+}
+
+.interface-container .visualization-container {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	margin-bottom: 1rem;
+}
+
+.interface-container #eye-tracking-viz {
+	background-color: rgba(45, 45, 57, 0.5);
+	border-radius: var(--small-radius);
+	box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons and Controls */
+.interface-container .controls {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.interface-container .control-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.25rem;
+	background-color: var(--primary-color);
+	color: white;
+	border: none;
+	border-radius: var(--small-radius);
+	cursor: pointer;
+	font-weight: 500;
+	transition: all 0.3s ease;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.interface-container .control-btn:hover {
+	background-color: var(--secondary-color);
+	transform: translateY(-2px);
+}
+
+.interface-container .control-btn:disabled {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: var(--muted-text);
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+/* Lists */
+.interface-container #feedback-history-list,
+.interface-container #available-laptops,
+.interface-container #available-mobiles,
+.interface-container #connected-devices {
+	list-style: none;
+	color: var(--light-text);
+}
+
+.interface-container #feedback-history-list li,
+.interface-container #available-laptops li,
+.interface-container #available-mobiles li,
+.interface-container #connected-devices li {
+	padding: 0.75rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	transition: background-color 0.2s ease;
+}
+
+.interface-container #feedback-history-list li:last-child,
+.interface-container #available-laptops li:last-child,
+.interface-container #available-mobiles li:last-child,
+.interface-container #connected-devices li:last-child {
+	border-bottom: none;
+}
+
+.interface-container #available-laptops li:hover,
+.interface-container #available-mobiles li:hover {
+	background-color: rgba(108, 92, 231, 0.1);
+	cursor: pointer;
+}
+
+/* Form Elements */
+.interface-container select,
+.interface-container input[type="text"] {
+	padding: 0.75rem;
+	background-color: rgba(45, 45, 57, 0.7);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: var(--small-radius);
+	color: var(--text-color);
+}
+
+.interface-container select:focus,
+.interface-container input[type="text"]:focus {
+	border-color: var(--primary-color);
+	outline: none;
+}
+
+/* Feedback Messages */
+.interface-container .feedback-message {
+	padding: 0.75rem;
+	margin-bottom: 0.5rem;
+	border-radius: var(--small-radius);
+	background-color: rgba(45, 45, 57, 0.7);
+}
+
+.interface-container .feedback-alert {
+	border-left: 4px solid var(--danger-color);
+}
+
+.interface-container .feedback-instruction {
+	border-left: 4px solid var(--warning-color);
+}
+
+.interface-container .feedback-status {
+	border-left: 4px solid var(--success-color);
+}
+
+/* Eye Tracking Specific UI */
+.interface-container .blink-indicator {
+	font-size: 2.5rem;
+	font-weight: bold;
+	text-align: center;
+	color: rgba(244, 67, 54, 0.3);
+	padding: 1.5rem;
+	margin-bottom: 1.5rem;
+	border-radius: var(--border-radius);
+	border: 2px dashed rgba(244, 67, 54, 0.2);
+	background-color: rgba(244, 67, 54, 0.05);
+}
+
+.interface-container .blink-detected {
+	color: rgb(244, 67, 54);
+	background-color: rgba(244, 67, 54, 0.2);
+	transform: scale(1.1);
+	animation: blinkPulse 1s ease-in-out;
+	border: 2px solid rgba(244, 67, 54, 0.6);
+}
+
+/* Emotion Panel */
+.interface-container #emotion-panel {
+	border-left: 4px solid var(--primary-color);
+}
+
+.interface-container #current-emotion {
+	font-size: 1.4rem;
+	font-weight: bold;
+	color: var(--primary-color);
+}
+
+/* Heart Rate Panel */
+.interface-container #heart-rate-panel {
+	border-left: 4px solid #e74c3c;
+}
+
+.interface-container #current-hr {
+	color: #e74c3c;
+	font-weight: bold;
+}
+
+/* Analytics Panel */
+.interface-container #analytics-panel {
+	border-left: 4px solid var(--accent-color);
+}
+
+/* Ensure metrics stand out */
+.interface-container #heart-rate-value,
+.interface-container #eye-status,
+.interface-container #blink-rate,
+.interface-container #blink-count,
+.interface-container #gaze-duration,
+.interface-container #fatigue-index,
+.interface-container #gaze-direction,
+.interface-container #pupil-diameter,
+.interface-container #head-rotation,
+.interface-container #head-movement,
+.interface-container #average-hr,
+.interface-container #hr-variability,
+.interface-container #emotion-confidence,
+.interface-container #stress-level,
+.interface-container #attention-score {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--secondary-color);
+}
