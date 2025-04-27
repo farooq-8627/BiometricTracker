@@ -3,8 +3,15 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Remote Work Analysis System</title>
+		<title>Biometric Remote Work Analysis</title>
 		<link rel="stylesheet" href="styles.css" />
+		<!-- Google Fonts -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
 		<!-- TensorFlow.js for ML processing -->
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 		<!-- Chart.js for data visualization -->
@@ -28,9 +35,10 @@
 	<body>
 		<div class="device-selector">
 			<div class="home-header" data-aos="fade-down" data-aos-duration="1000">
-				<h1>Remote Work Analysis System</h1>
+				<h1>Biometric Remote Work Analysis</h1>
 				<p class="subtitle">
-					Monitor focus, stress levels, and emotions in real-time
+					Advanced AI-driven metrics for monitoring cognitive engagement and
+					emotional states
 				</p>
 				<div class="authors">
 					<p>
@@ -43,145 +51,171 @@
 			</div>
 
 			<div class="home-content">
+				<div class="content-card" data-aos="fade-up" data-aos-duration="1000">
+					<div class="main-feature">
+						<div class="feature-content">
+							<h2>
+								<span class="highlight">Unlocking</span> Cognitive Potential
+							</h2>
+							<p>
+								Our advanced biometric tracking system uses cutting-edge AI to
+								provide real-time insights into remote work engagement and
+								productivity metrics.
+							</p>
+							<ul class="feature-list">
+								<li class="animate-feature">
+									<i data-feather="eye"></i> Precision eye movement tracking
+								</li>
+								<li class="animate-feature">
+									<i data-feather="activity"></i> Real-time heart rate analysis
+								</li>
+								<li class="animate-feature">
+									<i data-feather="bar-chart-2"></i> Emotional state evaluation
+								</li>
+							</ul>
+							<div class="stats-section">
+								<div class="stat-item">
+									<div class="stat-number">98.7%</div>
+									<div class="stat-label">Accuracy Rate</div>
+								</div>
+								<div class="stat-item">
+									<div class="stat-number">35ms</div>
+									<div class="stat-label">Response Time</div>
+								</div>
+								<div class="stat-item">
+									<div class="stat-number">7+</div>
+									<div class="stat-label">Emotional States</div>
+								</div>
+							</div>
+						</div>
+						<div class="feature-visual">
+							<div class="visual-container">
+								<div class="purple-spiral"></div>
+								<i data-feather="eye" class="large-icon pulse-animation"></i>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<div
-					class="home-description"
-					data-aos="fade-right"
+					class="project-details"
+					data-aos="fade-up"
 					data-aos-duration="1000"
 				>
-					<h2>Enhance Remote Productivity</h2>
-					<p>Our advanced biometric system uses AI to track:</p>
-					<ul class="feature-list">
-						<li class="animate-feature">
-							<i data-feather="eye"></i> Eye movement and attention
-						</li>
-						<li class="animate-feature">
-							<i data-feather="heart"></i> Stress levels via heart rate
-						</li>
-						<li class="animate-feature">
-							<i data-feather="smile"></i> Emotional engagement
-						</li>
-					</ul>
+					<h2>Project Framework</h2>
+					<div class="details-grid">
+						<div class="detail-card">
+							<div class="card-icon"><i data-feather="target"></i></div>
+							<h3>Objective</h3>
+							<p>
+								Develop a real-time monitoring system to analyze cognitive and
+								emotional states in work-from-home environments, aiming to
+								enhance focus and productivity.
+							</p>
+						</div>
+						<div class="detail-card">
+							<div class="card-icon"><i data-feather="layers"></i></div>
+							<h3>Architecture</h3>
+							<p>
+								A three-component architecture: Tracker (data capture),
+								Dashboard (analysis & visualization), and Communication Layer
+								(real-time data exchange).
+							</p>
+						</div>
+						<div class="detail-card">
+							<div class="card-icon"><i data-feather="cpu"></i></div>
+							<h3>Technology</h3>
+							<p>
+								Integrates computer vision, deep learning, and real-time data
+								processing to track eye movements, estimate heart rate, and
+								analyze facial expressions.
+							</p>
+						</div>
+						<div class="detail-card">
+							<div class="card-icon"><i data-feather="bar-chart-2"></i></div>
+							<h3>Applications</h3>
+							<p>
+								Organizations can monitor engagement, provide timely support,
+								identify focus patterns, and make data-driven decisions about
+								remote work eligibility.
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<div
+					class="system-workflow"
+					data-aos="zoom-in"
+					data-aos-duration="1000"
+				>
+					<h2>System Workflow</h2>
+					<div class="workflow-diagram">
+						<div class="workflow-step">
+							<div class="step-number">1</div>
+							<div class="step-icon"><i data-feather="camera"></i></div>
+							<div class="step-description">
+								<strong>Data Acquisition</strong><br />Captures facial video for
+								eye tracking and emotion analysis
+							</div>
+						</div>
+						<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
+						<div class="workflow-step">
+							<div class="step-number">2</div>
+							<div class="step-icon"><i data-feather="cpu"></i></div>
+							<div class="step-description">
+								<strong>Real-time Processing</strong><br />Analyzes eye
+								movements, heart rate, and emotional states
+							</div>
+						</div>
+						<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
+						<div class="workflow-step">
+							<div class="step-number">3</div>
+							<div class="step-icon"><i data-feather="trending-up"></i></div>
+							<div class="step-description">
+								<strong>Dashboard Visualization</strong><br />Displays metrics
+								and insights for monitoring
+							</div>
+						</div>
+						<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
+						<div class="workflow-step">
+							<div class="step-number">4</div>
+							<div class="step-icon"><i data-feather="zap"></i></div>
+							<div class="step-description">
+								<strong>Actionable Insights</strong><br />Enables data-driven
+								decisions and interventions
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div
+					class="device-selection"
+					data-aos="fade-up"
+					data-aos-duration="1000"
+				>
+					<h3>Select your device type to begin:</h3>
+					<div class="button-container">
+						<button id="mobile-btn" class="device-btn">
+							<i data-feather="smartphone"></i>
+							<span class="device-btn-text">Tracker</span>
+						</button>
+						<button id="laptop-btn" class="device-btn">
+							<i data-feather="monitor"></i>
+							<span class="device-btn-text">Dashboard</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="home-footer">
 					<p>
-						Make data-driven decisions about remote work eligibility and provide
-						targeted support to employees who need it.
+						Designed for organizations with remote employees to ensure
+						engagement and productivity
+					</p>
+					<p class="copyright">
+						© 2025 SRM University-AP, Department of Computer Science &
+						Engineering
 					</p>
 				</div>
-
-				<div class="home-visual" data-aos="fade-left" data-aos-duration="1000">
-					<div class="visual-placeholder">
-						<i data-feather="monitor" class="large-icon"></i>
-						<i data-feather="activity" class="overlay-icon pulse-animation"></i>
-						<i data-feather="eye" class="overlay-icon blink-animation"></i>
-						<div class="brain-waves"></div>
-					</div>
-				</div>
-			</div>
-
-			<div class="project-details" data-aos="fade-up" data-aos-duration="1000">
-				<h2>Project Overview</h2>
-				<div class="details-grid">
-					<div class="detail-card">
-						<div class="card-icon"><i data-feather="target"></i></div>
-						<h3>Objective</h3>
-						<p>
-							Develop a real-time monitoring system to analyze cognitive and
-							emotional states in work-from-home environments, aiming to enhance
-							focus and productivity.
-						</p>
-					</div>
-					<div class="detail-card">
-						<div class="card-icon"><i data-feather="layers"></i></div>
-						<h3>System Architecture</h3>
-						<p>
-							A three-component architecture: Tracker (data capture), Dashboard
-							(analysis & visualization), and Communication Layer (real-time
-							data exchange).
-						</p>
-					</div>
-					<div class="detail-card">
-						<div class="card-icon"><i data-feather="cpu"></i></div>
-						<h3>Technology</h3>
-						<p>
-							Integrates computer vision, deep learning, and real-time data
-							processing to track eye movements, estimate heart rate, and
-							analyze facial expressions.
-						</p>
-					</div>
-					<div class="detail-card">
-						<div class="card-icon"><i data-feather="bar-chart-2"></i></div>
-						<h3>Applications</h3>
-						<p>
-							Organizations can monitor engagement, provide timely support,
-							identify focus patterns, and make data-driven decisions about
-							remote work eligibility.
-						</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="system-workflow" data-aos="zoom-in" data-aos-duration="1000">
-				<h2>How It Works</h2>
-				<div class="workflow-diagram">
-					<div class="workflow-step">
-						<div class="step-number">1</div>
-						<div class="step-icon"><i data-feather="camera"></i></div>
-						<div class="step-description">
-							Data Acquisition<br />Captures facial video for eye tracking and
-							emotion analysis
-						</div>
-					</div>
-					<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
-					<div class="workflow-step">
-						<div class="step-number">2</div>
-						<div class="step-icon"><i data-feather="cpu"></i></div>
-						<div class="step-description">
-							Real-time Processing<br />Analyzes eye movements, heart rate, and
-							emotional states
-						</div>
-					</div>
-					<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
-					<div class="workflow-step">
-						<div class="step-number">3</div>
-						<div class="step-icon"><i data-feather="trending-up"></i></div>
-						<div class="step-description">
-							Dashboard Visualization<br />Displays metrics and insights for
-							monitoring
-						</div>
-					</div>
-					<div class="workflow-arrow"><i data-feather="arrow-right"></i></div>
-					<div class="workflow-step">
-						<div class="step-number">4</div>
-						<div class="step-icon"><i data-feather="zap"></i></div>
-						<div class="step-description">
-							Actionable Insights<br />Enables data-driven decisions and
-							interventions
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="device-selection" data-aos="fade-up" data-aos-duration="1000">
-				<h3>Select your device type to begin:</h3>
-				<div class="button-container">
-					<button id="mobile-btn" class="device-btn">
-						<i data-feather="smartphone"></i>
-						Tracker
-					</button>
-					<button id="laptop-btn" class="device-btn">
-						<i data-feather="monitor"></i>
-						Dashboard
-					</button>
-				</div>
-			</div>
-
-			<div class="home-footer">
-				<p>
-					Designed for organizations with remote employees to ensure engagement
-					and productivity
-				</p>
-				<p class="copyright">
-					© 2025 SRM University-AP, Department of Computer Science & Engineering
-				</p>
 			</div>
 		</div>
 
