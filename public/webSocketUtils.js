@@ -1,4 +1,4 @@
-// WebSocket utilities for both mobile and laptop interfaces
+// WebSocket utilities for both tracker and dashboard interfaces
 
 /**
  * Initialize a WebSocket connection
@@ -135,7 +135,7 @@ function sendBiofeedbackData(ws, targetId, feedback) {
 }
 
 /**
- * Set up WebSocket handlers for the mobile device
+ * Set up WebSocket handlers for the tracker device
  * @param {WebSocket} ws - The WebSocket connection
  * @param {Object} handlers - Object containing handler functions for different message types
  */
@@ -180,7 +180,7 @@ function setupMobileWebSocketHandlers(ws, handlers) {
 }
 
 /**
- * Set up WebSocket handlers for the laptop device
+ * Set up WebSocket handlers for the dashboard device
  * @param {WebSocket} ws - The WebSocket connection
  * @param {Object} handlers - Object containing handler functions for different message types
  */
@@ -188,7 +188,7 @@ function setupLaptopWebSocketHandlers(ws, handlers) {
 	ws.onmessage = (event) => {
 		try {
 			const data = JSON.parse(event.data);
-			console.log("Laptop received WebSocket message:", data.type, data);
+			console.log("Dashboard received WebSocket message:", data.type, data);
 
 			switch (data.type) {
 				case "available_mobiles":
@@ -239,4 +239,18 @@ function setupLaptopWebSocketHandlers(ws, handlers) {
 			console.error("Error parsing WebSocket message:", error);
 		}
 	};
+}
+
+/**
+ * Send combined biometric data
+ * @param {WebSocket} ws - The WebSocket connection
+ * @param {string} targetId - The ID of the target device
+ * @param {Object} combinedData - Object containing eye tracking, heart rate, and emotion data
+ */
+function sendCombinedBiometricData(ws, targetId, combinedData) {
+	sendWebSocketMessage(ws, {
+		type: "combined_biometric_data",
+		targetId: targetId,
+		data: combinedData,
+	});
 }

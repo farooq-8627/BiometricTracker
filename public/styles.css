@@ -416,14 +416,141 @@ p {
 	padding: 2rem;
 	width: 220px;
 	position: relative;
-	transition: transform var(--transition-speed) ease;
+	transition: transform var(--transition-speed) ease,
+		box-shadow var(--transition-speed) ease;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
+	border-top: 4px solid transparent;
+	overflow: hidden;
 }
 
+/* Enhanced workflow step styling */
+.step-icon {
+	margin-bottom: 1.5rem;
+	text-align: center;
+}
+
+.step-icon i {
+	width: 60px;
+	height: 60px;
+	font-size: 2.5rem;
+	display: inline-block;
+	transition: all var(--transition-speed) ease;
+}
+
+/* Step 1 styling - Camera/Eye tracking */
+.workflow-step:nth-of-type(1) {
+	border: none;
+	border-radius: var(--border-radius);
+	box-shadow: 0 10px 20px rgba(0, 206, 201, 0.15);
+	position: relative;
+	overflow: hidden;
+}
+
+.workflow-step:nth-of-type(1)::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background: linear-gradient(to right, #00cec9, #6c5ce7);
+}
+
+.workflow-step:nth-of-type(1) .step-icon i {
+	background: linear-gradient(45deg, #00cec9 0%, #6c5ce7 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	filter: drop-shadow(0 0 8px rgba(0, 206, 201, 0.3));
+}
+
+/* Step 2 styling - Heart rate */
+.workflow-step:nth-of-type(2) {
+	border: none;
+	border-radius: var(--border-radius);
+	box-shadow: 0 10px 20px rgba(253, 121, 168, 0.15);
+	position: relative;
+	overflow: hidden;
+}
+
+.workflow-step:nth-of-type(2)::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background: linear-gradient(to right, #fd79a8, #e84393);
+}
+
+.workflow-step:nth-of-type(2) .step-icon i {
+	background: linear-gradient(45deg, #fd79a8 0%, #e84393 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	filter: drop-shadow(0 0 8px rgba(253, 121, 168, 0.3));
+}
+
+/* Step 3 styling - AI algorithms */
+.workflow-step:nth-of-type(3) {
+	border: none;
+	border-radius: var(--border-radius);
+	box-shadow: 0 10px 20px rgba(162, 155, 254, 0.15);
+	position: relative;
+	overflow: hidden;
+}
+
+.workflow-step:nth-of-type(3)::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background: linear-gradient(to right, #a29bfe, #4a69bd);
+}
+
+.workflow-step:nth-of-type(3) .step-icon i {
+	background: linear-gradient(45deg, #a29bfe 0%, #4a69bd 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	filter: drop-shadow(0 0 8px rgba(162, 155, 254, 0.3));
+}
+
+/* Step 4 styling - Dashboard */
+.workflow-step:nth-of-type(4) {
+	border: none;
+	border-radius: var(--border-radius);
+	box-shadow: 0 10px 20px rgba(85, 239, 196, 0.15);
+	position: relative;
+	overflow: hidden;
+}
+
+.workflow-step:nth-of-type(4)::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background: linear-gradient(to right, #55efc4, #00b894);
+}
+
+.workflow-step:nth-of-type(4) .step-icon i {
+	background: linear-gradient(45deg, #55efc4 0%, #00b894 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	filter: drop-shadow(0 0 8px rgba(85, 239, 196, 0.3));
+}
+
+/* Enhanced hover effects */
 .workflow-step:hover {
-	transform: translateY(-8px);
+	transform: translateY(-12px);
+	box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.workflow-step:hover .step-icon i {
+	transform: scale(1.2);
 }
 
 .step-number {
@@ -432,33 +559,46 @@ p {
 	left: -15px;
 	width: 40px;
 	height: 40px;
-	background-color: var(--primary-color);
+	background-color: var(--card-bg);
 	color: var(--text-color);
 	border-radius: 50%;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	font-weight: 600;
-	box-shadow: 0 4px 10px rgba(108, 92, 231, 0.5);
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 	z-index: 1;
+	border: 2px solid;
 }
 
-.step-icon {
-	margin-bottom: 1.5rem;
-	color: var(--primary-color);
-	text-align: center;
+/* Number border colors for each step */
+.workflow-step:nth-of-type(1) .step-number {
+	border-color: #00cec9;
+	color: #00cec9;
 }
 
-.step-icon i {
-	width: 40px;
-	height: 40px;
+.workflow-step:nth-of-type(2) .step-number {
+	border-color: #fd79a8;
+	color: #fd79a8;
 }
 
+.workflow-step:nth-of-type(3) .step-number {
+	border-color: #a29bfe;
+	color: #a29bfe;
+}
+
+.workflow-step:nth-of-type(4) .step-number {
+	border-color: #55efc4;
+	color: #55efc4;
+}
+
+/* Improve step description styling */
 .step-description {
 	font-size: 0.9rem;
 	color: var(--light-text);
 	line-height: 1.6;
 	text-align: center;
+	margin-top: 0.5rem;
 }
 
 .workflow-arrow {
@@ -472,6 +612,7 @@ p {
 	width: 30px;
 	height: 30px;
 	opacity: 0.8;
+	color: var(--accent-color);
 }
 
 /* Device Selection */
@@ -525,8 +666,8 @@ p {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	width: 180px;
-	height: 180px;
+	width: 200px;
+	height: 200px;
 	background-color: var(--card-bg);
 	border: none;
 	border-radius: var(--border-radius);
@@ -539,6 +680,7 @@ p {
 	overflow: hidden;
 }
 
+/* Button top border line effect */
 .device-btn::before {
 	content: "";
 	position: absolute;
@@ -555,29 +697,103 @@ p {
 	transition: transform var(--transition-speed) ease;
 }
 
+/* Specific gradient for Tracker button */
+#mobile-btn::before {
+	background: linear-gradient(90deg, #00cec9, /* Teal */ #6c5ce7 /* Purple */);
+}
+
+/* Specific gradient for Dashboard button */
+#laptop-btn::before {
+	background: linear-gradient(
+		90deg,
+		#a29bfe,
+		/* Lighter purple */ #4a69bd /* Royal blue */
+	);
+}
+
 .device-btn:hover::before {
 	transform: translateY(0);
 }
 
+/* Specific glow for Tracker button */
+#mobile-btn {
+	box-shadow: 0 10px 30px rgba(0, 206, 201, 0.15);
+}
+
+#mobile-btn:hover {
+	box-shadow: 0 15px 40px rgba(0, 206, 201, 0.25);
+}
+
+/* Specific glow for Dashboard button */
+#laptop-btn {
+	box-shadow: 0 10px 30px rgba(162, 155, 254, 0.15);
+}
+
+#laptop-btn:hover {
+	box-shadow: 0 15px 40px rgba(162, 155, 254, 0.25);
+}
+
+/* Enhance hover scale effect */
 .device-btn:hover {
-	transform: translateY(-10px);
+	transform: translateY(-12px);
 	box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
 }
 
 .device-btn i {
-	font-size: 2.5rem;
+	font-size: 3.5rem;
 	margin-bottom: 1.5rem;
-	color: var(--primary-color);
 	transition: all var(--transition-speed) ease;
+	filter: drop-shadow(0 0 8px rgba(108, 92, 231, 0.3));
 }
 
 .device-btn:hover i {
-	transform: scale(1.1);
+	transform: scale(1.2);
+	filter: drop-shadow(0 0 12px rgba(108, 92, 231, 0.5));
 }
 
 .device-btn-text {
-	font-weight: 500;
-	font-size: 1.1rem;
+	font-weight: 600;
+	font-size: 1.2rem;
+	background: linear-gradient(
+		45deg,
+		var(--accent-color) 0%,
+		var(--primary-color) 100%
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	text-shadow: 0 0 8px rgba(108, 92, 231, 0.3);
+}
+
+/* Specific color for Tracker button text */
+#mobile-btn .device-btn-text {
+	background: linear-gradient(
+		45deg,
+		#00cec9 0%,
+		/* Teal */ #6c5ce7 100% /* Purple */
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Specific color for Dashboard button text */
+#laptop-btn .device-btn-text {
+	background: linear-gradient(
+		45deg,
+		#a29bfe 0%,
+		/* Lighter purple */ #4a69bd 100% /* Royal blue */
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Specific icon color for Tracker button */
+#mobile-btn i {
+	color: #00cec9; /* Teal */
+}
+
+/* Specific icon color for Dashboard button */
+#laptop-btn i {
+	color: #a29bfe; /* Lighter purple */
 }
 
 /* Footer */
@@ -1259,4 +1475,267 @@ p {
 	transition: all 0.3s ease;
 	padding: 2px 5px;
 	border-radius: 4px;
+}
+
+/* Biometric Visual Animations */
+.biometric-visual {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	overflow: hidden;
+	background: rgba(20, 20, 30, 0.8);
+	box-shadow: 0 0 30px rgba(108, 92, 231, 0.4);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+/* Brain waves animation */
+.brain-waves {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0.6;
+}
+
+.wave-alpha,
+.wave-beta,
+.wave-theta {
+	position: absolute;
+	height: 2px;
+	width: 100%;
+	left: 0;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		var(--primary-color) 20%,
+		var(--accent-color) 50%,
+		var(--primary-color) 80%,
+		transparent 100%
+	);
+	opacity: 0.6;
+	animation: wave-animation 3s infinite linear;
+}
+
+.wave-alpha {
+	top: 30%;
+	animation-duration: 4s;
+	animation-delay: 0s;
+}
+
+.wave-beta {
+	top: 45%;
+	animation-duration: 5s;
+	animation-delay: 0.5s;
+}
+
+.wave-theta {
+	top: 60%;
+	animation-duration: 6s;
+	animation-delay: 1s;
+}
+
+@keyframes wave-animation {
+	0% {
+		transform: translateX(-100%) scaleY(1);
+	}
+	50% {
+		transform: translateX(0%) scaleY(1.5);
+	}
+	100% {
+		transform: translateX(100%) scaleY(1);
+	}
+}
+
+/* Grid overlay */
+.grid-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-image: linear-gradient(
+			rgba(108, 92, 231, 0.1) 1px,
+			transparent 1px
+		),
+		linear-gradient(90deg, rgba(108, 92, 231, 0.1) 1px, transparent 1px);
+	background-size: 20px 20px;
+	opacity: 0.3;
+}
+
+/* Data points */
+.data-point {
+	position: absolute;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--accent-color);
+	box-shadow: 0 0 12px var(--accent-color);
+	animation: data-point-pulse 3s infinite ease-in-out;
+	z-index: 2;
+}
+
+@keyframes data-point-pulse {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 0.6;
+	}
+	50% {
+		transform: scale(1.5);
+		opacity: 1;
+	}
+}
+
+/* Pulse circle */
+.pulse-circle {
+	position: absolute;
+	width: 40%;
+	height: 40%;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle,
+		rgba(0, 206, 201, 0.1) 0%,
+		rgba(108, 92, 231, 0.3) 70%,
+		transparent 100%
+	);
+	animation: pulse-circle 4s infinite ease-in-out;
+}
+
+@keyframes pulse-circle {
+	0%,
+	100% {
+		transform: scale(0.8);
+		opacity: 0.3;
+	}
+	50% {
+		transform: scale(1.1);
+		opacity: 0.6;
+	}
+}
+
+/* ECG (heart rate) line */
+.ecg-container {
+	position: absolute;
+	bottom: 15%;
+	width: 80%;
+	height: 60px;
+	overflow: hidden;
+}
+
+.ecg-line {
+	fill: none;
+	stroke: var(--accent-color);
+	stroke-width: 2px;
+	stroke-linecap: round;
+	animation: ecg-animation 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+	filter: drop-shadow(0 0 4px var(--accent-color));
+}
+
+@keyframes ecg-animation {
+	0%,
+	100% {
+		stroke-dasharray: 300;
+		stroke-dashoffset: 300;
+	}
+	50% {
+		stroke-dasharray: 300;
+		stroke-dashoffset: 0;
+	}
+}
+
+/* Iris and pupil */
+.iris-container {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 28%;
+	height: 28%;
+}
+
+.iris {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle,
+		rgba(162, 155, 254, 0.8) 0%,
+		rgba(108, 92, 231, 0.6) 70%,
+		rgba(80, 70, 180, 0.4) 100%
+	);
+	box-shadow: 0 0 15px rgba(162, 155, 254, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	animation: iris-pulse 4s infinite alternate;
+}
+
+.pupil {
+	width: 40%;
+	height: 40%;
+	border-radius: 50%;
+	background-color: rgba(20, 20, 30, 0.9);
+	box-shadow: 0 0 5px rgba(0, 0, 0, 0.5) inset;
+	animation: pupil-pulse 5s infinite alternate;
+}
+
+@keyframes iris-pulse {
+	0% {
+		transform: scale(0.95);
+	}
+	50% {
+		transform: scale(1.05);
+	}
+	100% {
+		transform: scale(0.95);
+	}
+}
+
+@keyframes pupil-pulse {
+	0% {
+		transform: scale(0.9);
+	}
+	50% {
+		transform: scale(1.1);
+	}
+	100% {
+		transform: scale(0.9);
+	}
+}
+
+/* Apply different animation delays to data points */
+.data-point:nth-child(1) {
+	animation-delay: 0s;
+}
+.data-point:nth-child(2) {
+	animation-delay: 0.6s;
+}
+.data-point:nth-child(3) {
+	animation-delay: 1.2s;
+}
+.data-point:nth-child(4) {
+	animation-delay: 1.8s;
+}
+.data-point:nth-child(5) {
+	animation-delay: 2.4s;
+}
+.data-point:nth-child(6) {
+	animation-delay: 3s;
+}
+
+/* Add a second set of data points that are out of phase with the first */
+.biometric-visual::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1;
+	pointer-events: none;
 }

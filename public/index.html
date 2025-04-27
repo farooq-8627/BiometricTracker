@@ -92,8 +92,69 @@
 						</div>
 						<div class="feature-visual">
 							<div class="visual-container">
-								<div class="purple-spiral"></div>
-								<i class="fas fa-eye large-icon"></i>
+								<div class="biometric-visual">
+									<!-- Brain wave representations -->
+									<div class="brain-waves">
+										<div class="wave-alpha"></div>
+										<div class="wave-beta"></div>
+										<div class="wave-theta"></div>
+										<!-- Add second set of waves with different phases -->
+										<div class="wave-alpha" style="animation-delay: 2s"></div>
+										<div class="wave-beta" style="animation-delay: 2.5s"></div>
+										<div class="wave-theta" style="animation-delay: 3s"></div>
+									</div>
+
+									<!-- Grid overlay -->
+									<div class="grid-overlay"></div>
+
+									<!-- Data points positioned at specific coordinates -->
+									<div class="data-point" style="top: 30%; left: 20%"></div>
+									<div class="data-point" style="top: 25%; left: 75%"></div>
+									<div class="data-point" style="top: 70%; left: 30%"></div>
+									<div class="data-point" style="top: 60%; left: 80%"></div>
+									<div class="data-point" style="top: 45%; left: 55%"></div>
+									<div class="data-point" style="top: 80%; left: 50%"></div>
+									<!-- Add more data points with different animation offsets -->
+									<div
+										class="data-point"
+										style="top: 40%; left: 40%; animation-delay: 1.5s"
+									></div>
+									<div
+										class="data-point"
+										style="top: 65%; left: 65%; animation-delay: 2.7s"
+									></div>
+									<div
+										class="data-point"
+										style="top: 20%; left: 50%; animation-delay: 1.2s"
+									></div>
+									<div
+										class="data-point"
+										style="top: 50%; left: 25%; animation-delay: 2.2s"
+									></div>
+
+									<!-- Pulse circle in the center -->
+									<div class="pulse-circle"></div>
+
+									<!-- ECG (Heart rate) line at the bottom -->
+									<div class="ecg-container">
+										<svg
+											viewBox="0 0 300 60"
+											xmlns="http://www.w3.org/2000/svg"
+										>
+											<path
+												class="ecg-line"
+												d="M0,30 Q25,30 50,30 T75,30 T100,30 L120,30 L130,10 L140,50 L150,30 L170,30 L180,20 L190,40 L200,30 L220,30 Q245,30 270,30 T300,30"
+											/>
+										</svg>
+									</div>
+
+									<!-- Iris container with pupil in the center -->
+									<div class="iris-container">
+										<div class="iris">
+											<div class="pupil"></div>
+										</div>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -205,8 +266,8 @@
 							data-aos="fade-up"
 							data-aos-delay="100"
 						>
-							<i class="fas fa-mobile-alt"></i>
-							<span class="device-btn-text">Mobile</span>
+							<i class="fas fa-camera"></i>
+							<span class="device-btn-text">Tracker</span>
 						</button>
 						<button
 							id="laptop-btn"
@@ -214,8 +275,8 @@
 							data-aos="fade-up"
 							data-aos-delay="200"
 						>
-							<i class="fas fa-laptop"></i>
-							<span class="device-btn-text">Laptop</span>
+							<i class="fas fa-chart-bar"></i>
+							<span class="device-btn-text">Dashboard</span>
 						</button>
 					</div>
 				</section>
@@ -233,7 +294,7 @@
 		<!-- Mobile Interface (hidden by default) -->
 		<div id="mobile-interface" class="interface-container hidden">
 			<div class="header">
-				<h2>Mobile Data Collection</h2>
+				<h2>Tracker Data Collection</h2>
 				<div id="connection-status" class="status not-connected">
 					Not Connected
 				</div>
@@ -255,7 +316,7 @@
 				</button>
 				<button id="pair-device" class="control-btn">
 					<i data-feather="link"></i>
-					Pair with Laptop
+					Pair with Dashboard
 				</button>
 				<button id="mobile-download-models" class="control-btn">
 					<i data-feather="download-cloud"></i>
@@ -269,7 +330,7 @@
 			</div>
 
 			<div id="pairing-panel" class="panel hidden">
-				<h3>Available Laptops</h3>
+				<h3>Available Dashboards</h3>
 				<ul id="available-laptops"></ul>
 			</div>
 
@@ -413,7 +474,7 @@
 					<h3>Connected Devices</h3>
 					<ul id="connected-devices"></ul>
 					<div id="pairing-requests"></div>
-					<h4>Available Mobile Devices</h4>
+					<h4>Available Tracker Devices</h4>
 					<ul id="available-mobiles"></ul>
 				</div>
 
@@ -521,7 +582,7 @@
 				const mobileInterface = document.getElementById("mobile-interface");
 				const laptopInterface = document.getElementById("laptop-interface");
 
-				// Mobile button click event handler
+				// Mobile button click event handler (now Tracker)
 				mobileBtn.addEventListener("click", function () {
 					deviceSelector.classList.add("hidden");
 					mobileInterface.classList.remove("hidden");
@@ -556,7 +617,7 @@
 					}, 500);
 				});
 
-				// Laptop button click event handler
+				// Laptop button click event handler (now Dashboard)
 				laptopBtn.addEventListener("click", function () {
 					deviceSelector.classList.add("hidden");
 					laptopInterface.classList.remove("hidden");

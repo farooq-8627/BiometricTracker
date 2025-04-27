@@ -1,4 +1,4 @@
-// Global variables for laptop interface
+// Global variables for dashboard interface
 let socket; // Socket.io socket
 let ws; // WebSocket connection
 let pairedMobileId = null;
@@ -16,9 +16,9 @@ let useWebSocket = true; // Flag to determine which connection to use
 let totalBlinkCount = 0; // Track the cumulative blink count
 let lastBlinkCount = 0; // Track the last blink count for change detection
 
-// Initialize the laptop interface
+// Initialize the dashboard interface
 function initializeLaptopInterface() {
-	console.log("Initializing laptop interface...");
+	console.log("Initializing dashboard interface...");
 
 	// Try to establish WebSocket connection first
 	try {
@@ -31,32 +31,32 @@ function initializeLaptopInterface() {
 				if (pairedMobileId === mobileId) {
 					pairedMobileId = null;
 					updateConnectionStatus(
-						"Paired mobile device disconnected",
+						"Paired tracker device disconnected",
 						"not-connected"
 					);
 					resetData();
 				}
 			},
 			onPairRequest: (mobileId) => {
-				console.log("Received pairing request from mobile device:", mobileId);
+				console.log("Received pairing request from tracker device:", mobileId);
 				if (
 					confirm(
-						`Mobile device (${mobileId.substring(
+						`Tracker device (${mobileId.substring(
 							0,
 							8
-						)}...) wants to pair with your laptop. Accept?`
+						)}...) wants to pair with your dashboard. Accept?`
 					)
 				) {
 					acceptPairRequest(ws, mobileId);
 					pairedMobileId = mobileId;
-					updateConnectionStatus("Paired with mobile device", "connected");
+					updateConnectionStatus("Paired with tracker device", "connected");
 					addToConnectedDevices(mobileId);
 				}
 			},
 			onPairConfirmed: (mobileId) => {
-				console.log("Pairing confirmed with mobile device:", mobileId);
+				console.log("Pairing confirmed with tracker device:", mobileId);
 				pairedMobileId = mobileId;
-				updateConnectionStatus("Paired with mobile device", "connected");
+				updateConnectionStatus("Paired with tracker device", "connected");
 				addToConnectedDevices(mobileId);
 			},
 			onEyeTrackingUpdate: (sourceId, data) => {
@@ -73,7 +73,7 @@ function initializeLaptopInterface() {
 					data
 				);
 				if (sourceId === pairedMobileId) {
-					console.log("Processing heart rate data from paired mobile:", data);
+					console.log("Processing heart rate data from paired tracker:", data);
 					processHeartRateData(data);
 				} else {
 					console.warn(
@@ -90,7 +90,7 @@ function initializeLaptopInterface() {
 			},
 		});
 
-		// Register as laptop device via WebSocket
+		// Register as dashboard device via WebSocket
 		ws.onopen = () => {
 			console.log("WebSocket connection established");
 			updateConnectionStatus("Connected to server via WebSocket", "connected");
@@ -706,20 +706,20 @@ function setupCharts() {
 	});
 }
 
-// Display available mobile devices for pairing
+// Display available tracker devices for pairing
 function displayAvailableMobiles(mobiles) {
 	const mobilesList = document.getElementById("available-mobiles");
 	mobilesList.innerHTML = "";
 
 	if (mobiles.length === 0) {
-		mobilesList.innerHTML = "<li>No mobile devices available for pairing</li>";
+		mobilesList.innerHTML = "<li>No tracker devices available for pairing</li>";
 		return;
 	}
 
 	mobiles.forEach((mobileId) => {
 		const listItem = document.createElement("li");
 		listItem.dataset.id = mobileId;
-		listItem.textContent = `Mobile Device (${mobileId.substring(0, 8)}...)`;
+		listItem.textContent = `Tracker Device (${mobileId.substring(0, 8)}...)`;
 
 		const pairButton = document.createElement("button");
 		pairButton.className = "control-btn";
@@ -733,22 +733,22 @@ function displayAvailableMobiles(mobiles) {
 	});
 }
 
-// Add a new available mobile device to the list
+// Add a new available tracker device to the list
 function addAvailableMobile(mobileId) {
 	const mobilesList = document.getElementById("available-mobiles");
 
-	// Check if it's the first mobile device
+	// Check if it's the first tracker device
 	if (
 		mobilesList
 			.querySelector("li")
-			?.textContent.includes("No mobile devices available")
+			?.textContent.includes("No tracker devices available")
 	) {
 		mobilesList.innerHTML = "";
 	}
 
 	const listItem = document.createElement("li");
 	listItem.dataset.id = mobileId;
-	listItem.textContent = `Mobile Device (${mobileId.substring(0, 8)}...)`;
+	listItem.textContent = `Tracker Device (${mobileId.substring(0, 8)}...)`;
 
 	const pairButton = document.createElement("button");
 	pairButton.className = "control-btn";
