@@ -5,6 +5,11 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Eye Tracking & Heart Rate Monitoring System</title>
 		<link rel="stylesheet" href="styles.css" />
+		<!-- AOS Animation Library -->
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css"
+		/>
 		<!-- TensorFlow.js for ML processing -->
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 		<!-- Chart.js for data visualization -->
@@ -23,20 +28,44 @@
 		<script src="downloadModels.js"></script>
 	</head>
 	<body>
-		<div class="device-selector">
-			<h1>Eye Tracking & Heart Rate Monitoring System</h1>
-			<p>Select your device type:</p>
-			<div class="button-container">
-				<button id="mobile-btn" class="device-btn">
+		<div class="device-selector" id="device-selector">
+			<h1 data-aos="fade-down" data-aos-duration="1000">
+				Eye Tracking & Heart Rate Monitoring System
+			</h1>
+			<p data-aos="fade-up" data-aos-duration="1000" data-aos-delay="200">
+				Select your device type:
+			</p>
+			<div
+				class="button-container"
+				data-aos="fade-up"
+				data-aos-duration="1000"
+				data-aos-delay="400"
+			>
+				<button
+					id="mobile-btn"
+					class="device-btn"
+					data-aos="zoom-in"
+					data-aos-delay="600"
+				>
 					<i data-feather="smartphone"></i>
-					Phone
+					Tracker
 				</button>
-				<button id="laptop-btn" class="device-btn">
+				<button
+					id="laptop-btn"
+					class="device-btn"
+					data-aos="zoom-in"
+					data-aos-delay="800"
+				>
 					<i data-feather="monitor"></i>
-					Laptop
+					Dashboard
 				</button>
 			</div>
-			<div class="download-models-container">
+			<div
+				class="download-models-container"
+				data-aos="fade-up"
+				data-aos-duration="1000"
+				data-aos-delay="1000"
+			>
 				<button id="download-models-btn" class="support-btn">
 					<i data-feather="download-cloud"></i>
 					Download ML Models
@@ -48,9 +77,12 @@
 		</div>
 
 		<!-- Mobile Interface (hidden by default) -->
-		<div id="mobile-interface" class="interface-container hidden">
+		<div
+			id="mobile-interface"
+			class="interface-container hidden transition-container"
+		>
 			<div class="header">
-				<h2>Mobile Data Collection</h2>
+				<h2>Tracker Data Collection</h2>
 				<div id="connection-status" class="status not-connected">
 					Not Connected
 				</div>
@@ -72,7 +104,7 @@
 				</button>
 				<button id="pair-device" class="control-btn">
 					<i data-feather="link"></i>
-					Pair with Laptop
+					Pair with Dashboard
 				</button>
 				<button id="mobile-download-models" class="control-btn">
 					<i data-feather="download-cloud"></i>
@@ -86,7 +118,7 @@
 			</div>
 
 			<div id="pairing-panel" class="panel hidden">
-				<h3>Available Laptops</h3>
+				<h3>Available Dashboards</h3>
 				<ul id="available-laptops"></ul>
 			</div>
 
@@ -100,10 +132,17 @@
 					<div id="eye-status">Not tracking</div>
 				</div>
 			</div>
+
+			<button id="back-to-home-mobile" class="back-to-home-btn">
+				<i data-feather="arrow-left"></i> Back to Device Selection
+			</button>
 		</div>
 
 		<!-- Laptop Interface (hidden by default) -->
-		<div id="laptop-interface" class="interface-container hidden">
+		<div
+			id="laptop-interface"
+			class="interface-container hidden transition-container"
+		>
 			<div class="header">
 				<h2>Analytics Dashboard</h2>
 				<div id="laptop-connection-status" class="status not-connected">
@@ -230,7 +269,7 @@
 					<h3>Connected Devices</h3>
 					<ul id="connected-devices"></ul>
 					<div id="pairing-requests"></div>
-					<h4>Available Mobile Devices</h4>
+					<h4>Available Tracker Devices</h4>
 					<ul id="available-mobiles"></ul>
 				</div>
 
@@ -255,6 +294,10 @@
 					</div>
 				</div>
 			</div>
+
+			<button id="back-to-home-laptop" class="back-to-home-btn">
+				<i data-feather="arrow-left"></i> Back to Device Selection
+			</button>
 		</div>
 
 		<!-- Common Scripts -->
@@ -267,15 +310,20 @@
 
 		<!-- Device Specific Scripts (loaded dynamically) -->
 
-		<script>
-			// Initialize Feather icons
-			document.addEventListener("DOMContentLoaded", () => {
-				// Suppress TensorFlow warnings to avoid console clutter
-				if (window.faceApiLoader) {
-					window.faceApiLoader.suppressTensorflowWarnings();
-				}
+		<!-- AOS Animation Library -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
 
-				// Check if feather is defined before using it
+		<script>
+			// Initialize AOS animations
+			document.addEventListener("DOMContentLoaded", () => {
+				// Initialize AOS
+				AOS.init({
+					once: true,
+					offset: 50,
+					duration: 1000,
+				});
+
+				// Initialize Feather icons
 				if (typeof feather !== "undefined") {
 					feather.replace();
 				} else {
@@ -286,6 +334,11 @@
 						"https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js";
 					featherScript.onload = () => feather.replace();
 					document.head.appendChild(featherScript);
+				}
+
+				// Suppress TensorFlow warnings to avoid console clutter
+				if (window.faceApiLoader) {
+					window.faceApiLoader.suppressTensorflowWarnings();
 				}
 
 				// Pre-initialize face-api to load models early
@@ -339,38 +392,104 @@
 					}
 				}, 2000);
 
-				// Setup device selection
+				// Enhanced interface transitions
+				const deviceSelector = document.getElementById("device-selector");
+				const mobileInterface = document.getElementById("mobile-interface");
+				const laptopInterface = document.getElementById("laptop-interface");
+
+				// Setup device selection with enhanced transitions
 				document.getElementById("mobile-btn").addEventListener("click", () => {
-					document.querySelector(".device-selector").classList.add("hidden");
-					document
-						.getElementById("mobile-interface")
-						.classList.remove("hidden");
+					// Fade out the device selector
+					deviceSelector.style.opacity = "0";
 
-					// Dynamically load mobile script
-					const mobileScript = document.createElement("script");
-					mobileScript.src = "mobile.js";
-					document.body.appendChild(mobileScript);
+					setTimeout(() => {
+						deviceSelector.classList.add("hidden");
+						// Prepare mobile interface for animation
+						mobileInterface.classList.remove("hidden");
+						mobileInterface.style.opacity = "0";
 
-					mobileScript.onload = () => {
-						initializeMobileInterface();
-					};
+						// Small delay before showing the interface
+						setTimeout(() => {
+							mobileInterface.style.opacity = "1";
+
+							// Dynamically load mobile script
+							const mobileScript = document.createElement("script");
+							mobileScript.src = "mobile.js";
+							document.body.appendChild(mobileScript);
+
+							mobileScript.onload = () => {
+								if (typeof initializeMobileInterface === "function") {
+									initializeMobileInterface();
+								}
+							};
+						}, 50);
+					}, 500);
 				});
 
 				document.getElementById("laptop-btn").addEventListener("click", () => {
-					document.querySelector(".device-selector").classList.add("hidden");
-					document
-						.getElementById("laptop-interface")
-						.classList.remove("hidden");
+					// Fade out the device selector
+					deviceSelector.style.opacity = "0";
 
-					// Dynamically load laptop script
-					const laptopScript = document.createElement("script");
-					laptopScript.src = "laptop.js";
-					document.body.appendChild(laptopScript);
+					setTimeout(() => {
+						deviceSelector.classList.add("hidden");
+						// Prepare laptop interface for animation
+						laptopInterface.classList.remove("hidden");
+						laptopInterface.style.opacity = "0";
 
-					laptopScript.onload = () => {
-						initializeLaptopInterface();
-					};
+						// Small delay before showing the interface
+						setTimeout(() => {
+							laptopInterface.style.opacity = "1";
+
+							// Dynamically load laptop script
+							const laptopScript = document.createElement("script");
+							laptopScript.src = "laptop.js";
+							document.body.appendChild(laptopScript);
+
+							laptopScript.onload = () => {
+								if (typeof initializeLaptopInterface === "function") {
+									initializeLaptopInterface();
+								}
+							};
+						}, 50);
+					}, 500);
 				});
+
+				// Back buttons
+				document
+					.getElementById("back-to-home-mobile")
+					.addEventListener("click", () => {
+						// Fade out interface
+						mobileInterface.style.opacity = "0";
+
+						setTimeout(() => {
+							mobileInterface.classList.add("hidden");
+							// Show device selector with animation
+							deviceSelector.classList.remove("hidden");
+							deviceSelector.style.opacity = "0";
+
+							setTimeout(() => {
+								deviceSelector.style.opacity = "1";
+							}, 50);
+						}, 500);
+					});
+
+				document
+					.getElementById("back-to-home-laptop")
+					.addEventListener("click", () => {
+						// Fade out interface
+						laptopInterface.style.opacity = "0";
+
+						setTimeout(() => {
+							laptopInterface.classList.add("hidden");
+							// Show device selector with animation
+							deviceSelector.classList.remove("hidden");
+							deviceSelector.style.opacity = "0";
+
+							setTimeout(() => {
+								deviceSelector.style.opacity = "1";
+							}, 50);
+						}, 500);
+					});
 			});
 		</script>
 	</body>
