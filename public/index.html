@@ -516,9 +516,15 @@
 
 				// Device selection
 				document.getElementById("mobile-btn").addEventListener("click", () => {
+					// Hide the device selector (home page)
+					document.querySelector(".device-selector").classList.add("hidden");
+
+					// Make sure all interface containers are hidden first
 					document
 						.querySelectorAll(".interface-container")
 						.forEach((el) => el.classList.add("hidden"));
+
+					// Then show only the tracker interface
 					document
 						.getElementById("tracker-interface")
 						.classList.remove("hidden");
@@ -534,7 +540,15 @@
 				});
 
 				document.getElementById("laptop-btn").addEventListener("click", () => {
+					// Hide the device selector (home page)
 					document.querySelector(".device-selector").classList.add("hidden");
+
+					// Make sure all interface containers are hidden first
+					document
+						.querySelectorAll(".interface-container")
+						.forEach((el) => el.classList.add("hidden"));
+
+					// Then show only the laptop interface
 					document
 						.getElementById("laptop-interface")
 						.classList.remove("hidden");

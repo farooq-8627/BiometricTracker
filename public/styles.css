@@ -680,11 +680,18 @@ p {
 
 /* Interface Containers - dark theme */
 .interface-container {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 1.5rem;
-	background-color: var(--dark-bg);
-	color: var(--text-color);
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100vh;
+	overflow-y: auto;
+	z-index: 9999;
+}
+
+/* Ensure the device-selector is properly hidden when showing interfaces */
+.device-selector.hidden {
+	display: none !important;
 }
 
 /* Headers */
@@ -710,11 +717,11 @@ p {
 
 /* Status Indicators */
 .interface-container .status {
+	display: inline-block !important;
 	padding: 0.5rem 1rem;
 	border-radius: 20px;
 	font-size: 0.875rem;
 	font-weight: 500;
-	display: inline-block;
 }
 
 .interface-container .not-connected {
@@ -880,8 +887,9 @@ p {
 
 .interface-container #available-laptops li:hover,
 .interface-container #available-mobiles li:hover {
-	background-color: rgba(108, 92, 231, 0.1);
+	background-color: rgba(108, 92, 231, 0.2);
 	cursor: pointer;
+	transform: translateX(5px);
 }
 
 /* Form Elements */
@@ -986,4 +994,72 @@ p {
 	font-size: 1.25rem;
 	font-weight: 600;
 	color: var(--secondary-color);
+}
+
+/* Override some of our new styles with the essential original functionality */
+
+#tracker-interface,
+#laptop-interface {
+	display: none;
+}
+
+#tracker-interface.hidden,
+#laptop-interface.hidden {
+	display: none !important;
+}
+
+#tracker-interface:not(.hidden),
+#laptop-interface:not(.hidden) {
+	display: block !important;
+}
+
+.interface-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100vh;
+	overflow-y: auto;
+	z-index: 9999;
+}
+
+/* Make sure device lists are displayed */
+#available-mobiles li,
+#available-laptops li {
+	background-color: var(--card-bg);
+	margin-bottom: 0.5rem;
+	padding: 0.75rem 1rem;
+	border-radius: var(--small-radius);
+	cursor: pointer;
+	border-left: 3px solid var(--primary-color);
+	transition: all 0.2s ease;
+}
+
+#available-mobiles li:hover,
+#available-laptops li:hover {
+	background-color: rgba(108, 92, 231, 0.2);
+	transform: translateX(5px);
+}
+
+/* Ensure that video container displays properly */
+.video-container {
+	background-color: #000;
+	border-radius: var(--border-radius);
+	overflow: hidden;
+	box-shadow: var(--card-shadow);
+	margin-bottom: 1.5rem;
+}
+
+#camera-feed {
+	width: 100%;
+	display: block;
+}
+
+/* Connection status indicators */
+.status {
+	display: inline-block !important;
+	padding: 0.5rem 1rem;
+	border-radius: 20px;
+	font-size: 0.875rem;
+	font-weight: 500;
 }
