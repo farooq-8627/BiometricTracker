@@ -166,6 +166,14 @@ async function processEyeTracking(videoElement, canvas, context) {
 			)}, gaze x=${gazeData.x.toFixed(2)}, y=${gazeData.y.toFixed(2)}`
 		);
 
+		// After successful face detection, share it globally
+		if (detections) {
+			window.latestFaceDetectionResult = detections;
+			console.log(
+				"Face detected in eye tracking - sharing with heart rate module"
+			);
+		}
+
 		// Return combined tracking data
 		return {
 			...eyeData,

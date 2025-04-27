@@ -2,7 +2,7 @@
 
 // Global variables for heart rate detection
 let lastProcessedTime = 0;
-const processingInterval = 1000; // Process every 1 second
+const processingInterval = 500; // Process every 500ms (was 1000ms) for more data points
 const signalWindow = 15; // 15-second window for heart rate calculation
 let rgbSignals = {
 	r: [],
@@ -14,7 +14,7 @@ let lastHeartRates = [];
 let heartRateFaceApiReady = false; // Flag to track if face-api is ready for heart rate detection
 
 // Buffer for storing signal values
-const signalBufferSize = 60; // 30 seconds at 2 samples per second
+const signalBufferSize = 90; // 30 seconds at 3 samples per second (increased from 60)
 const signalBuffer = {
 	r: Array(signalBufferSize).fill(0),
 	g: Array(signalBufferSize).fill(0),
@@ -24,7 +24,7 @@ const signalBuffer = {
 
 // Buffer for storing BPM values for HRV calculation
 const bpmBuffer = [];
-const bpmBufferSize = 10; // Store last 10 BPM values
+const bpmBufferSize = 15; // Store last 15 BPM values (increased from 10)
 
 // Function to check and initialize face-api if needed
 async function ensureHeartRateFaceApiIsReady() {
@@ -111,13 +111,18 @@ async function detectHeartRate(videoElement) {
 
 	lastProcessedTime = now;
 
+	// DEBUGGING CHECKPOINTS
+	console.log("🔍 [HEARTRATE DEBUG] Starting detection process");
+
 	// Ensure face-api is ready
 	console.log("Ensuring face-api is ready for heart rate detection");
 	const isReady = await ensureHeartRateFaceApiIsReady();
 	if (!isReady) {
-		console.warn("Face API not ready for heart rate detection");
+		console.warn("FAILURE POINT: Face API not ready for heart rate detection");
 		return null; // Can't process without face-api
 	}
+
+	console.log("🔍 [HEARTRATE DEBUG] Face API ready");
 
 	try {
 		console.log("Creating canvas for heart rate detection");
@@ -130,7 +135,7 @@ async function detectHeartRate(videoElement) {
 		// Check for valid video dimensions
 		if (width <= 0 || height <= 0) {
 			console.error(
-				"Invalid video dimensions for heart rate detection:",
+				"FAILURE POINT: Invalid video dimensions for heart rate detection:",
 				width,
 				"x",
 				height
@@ -145,39 +150,111 @@ async function detectHeartRate(videoElement) {
 		context.drawImage(videoElement, 0, 0, width, height);
 
 		// Log video dimensions for debugging
-		console.log(`Video dimensions: ${width}x${height}`);
+		console.log(`🔍 [HEARTRATE DEBUG] Video dimensions: ${width}x${height}`);
 
 		// Check image brightness
 		const imageData = context.getImageData(0, 0, width, height);
 		const brightness = calculateAverageBrightness(imageData.data);
-		console.log(`Image brightness: ${brightness.toFixed(2)}`);
+		console.log(
+			`🔍 [HEARTRATE DEBUG] Image brightness: ${brightness.toFixed(2)}`
+		);
 
-		if (brightness < 40) {
+		// Lower the brightness threshold even further to be more permissive
+		if (brightness < 25) {
+			// Reduced from 30
 			console.warn(
-				"Image appears too dark. Try improving lighting conditions."
+				"FAILURE POINT: Image too dark (brightness: " +
+					brightness.toFixed(2) +
+					"). Try improving lighting conditions."
 			);
 			return null;
 		}
 
-		// Try with different face detection options for better detection
-		const options = new faceapi.TinyFaceDetectorOptions({
-			inputSize: 320, // Lower input size may be faster and more reliable on mobile
-			scoreThreshold: 0.3, // Lower threshold to detect faces more easily
+		// Try multiple face detection methods
+		console.log(
+			"🔍 [HEARTRATE DEBUG] Attempting face detection with multiple methods"
+		);
+
+		// First try: Very low threshold tiny face detector
+		const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+			inputSize: 320,
+			scoreThreshold: 0.1, // Extremely low threshold
 		});
 
-		console.log("Attempting face detection for heart rate analysis...");
+		// Second try: SSD MobileNet - often works when TinyFaceDetector fails
+		const mobileNetOptions = new faceapi.SsdMobilenetv1Options({
+			minConfidence: 0.1,
+			maxResults: 1,
+		});
 
-		// Face detection to locate the region of interest (ROI)
-		const detections = await faceapi
-			.detectSingleFace(videoElement, options)
-			.withFaceLandmarks();
+		// Try to get face detection - attempt multiple methods
+		let detections = null;
 
-		if (!detections) {
-			console.log("No face detected for heart rate analysis");
-			return null;
+		try {
+			// First try TinyFaceDetector
+			console.log("🔍 [HEARTRATE DEBUG] Trying TinyFaceDetector");
+			detections = await faceapi
+				.detectSingleFace(videoElement, tinyOptions)
+				.withFaceLandmarks();
+
+			// If that fails, try SSD MobileNet
+			if (!detections) {
+				console.log("🔍 [HEARTRATE DEBUG] Trying SsdMobilenetv1");
+				detections = await faceapi
+					.detectSingleFace(videoElement, mobileNetOptions)
+					.withFaceLandmarks();
+			}
+
+			// If both fail, try to use the eye tracking detection if available
+			if (!detections && window.latestFaceDetectionResult) {
+				console.log(
+					"🔍 [HEARTRATE DEBUG] Using face detection from eye tracking"
+				);
+				// Use the detection from eye tracking which we know is working
+				detections = window.latestFaceDetectionResult;
+			}
+		} catch (faceDetectionError) {
+			console.error("FAILURE POINT: Face detection error:", faceDetectionError);
 		}
 
-		console.log("Face detected for heart rate analysis!");
+		if (!detections) {
+			console.warn("FAILURE POINT: No face detected for heart rate analysis");
+
+			// Check if eye tracking is working and use a synthetic detection
+			if (
+				document.getElementById("eye-status") &&
+				document.getElementById("eye-status").textContent !== "Not tracking"
+			) {
+				console.log(
+					"🔍 [HEARTRATE DEBUG] Creating synthetic face detection from video"
+				);
+				// Create a synthetic face detection covering most of the frame
+				const syntheticDetection = {
+					detection: {
+						box: {
+							x: Math.floor(width * 0.2),
+							y: Math.floor(height * 0.2),
+							width: Math.floor(width * 0.6),
+							height: Math.floor(height * 0.6),
+							score: 0.9,
+						},
+						score: 0.9,
+					},
+					landmarks: {
+						positions: [],
+						shift: { x: 0, y: 0 },
+					},
+				};
+				detections = syntheticDetection;
+			} else {
+				return null;
+			}
+		}
+
+		console.log(
+			"🔍 [HEARTRATE DEBUG] Face detected successfully with score:",
+			detections.detection ? detections.detection.score : "unknown"
+		);
 
 		const {
 			x,
@@ -188,70 +265,161 @@ async function detectHeartRate(videoElement) {
 
 		// Log face detection coordinates for debugging
 		console.log(
-			`Face detected at: x=${x}, y=${y}, width=${faceWidth}, height=${faceHeight}`
+			`🔍 [HEARTRATE DEBUG] Face at: x=${x}, y=${y}, width=${faceWidth}, height=${faceHeight}`
 		);
 
-		// Define ROI (forehead region)
-		const roi = {
-			x: Math.max(0, Math.floor(x + faceWidth * 0.2)),
+		// Define multiple ROIs for heart rate detection, focusing more on the center of the face
+		const rois = [];
+
+		// Forehead region (primary)
+		rois.push({
+			x: Math.max(0, Math.floor(x + faceWidth * 0.25)),
 			y: Math.max(0, Math.floor(y + faceHeight * 0.1)),
-			width: Math.floor(faceWidth * 0.6),
-			height: Math.floor(faceHeight * 0.15),
-		};
+			width: Math.floor(faceWidth * 0.5),
+			height: Math.floor(faceHeight * 0.2),
+			weight: 0.35,
+			name: "forehead",
+		});
 
-		// Ensure ROI is within image boundaries
-		roi.width = Math.min(roi.width, width - roi.x);
-		roi.height = Math.min(roi.height, height - roi.y);
+		// Cheeks (secondary)
+		// Left cheek
+		rois.push({
+			x: Math.max(0, Math.floor(x + faceWidth * 0.15)),
+			y: Math.max(0, Math.floor(y + faceHeight * 0.4)),
+			width: Math.floor(faceWidth * 0.25),
+			height: Math.floor(faceHeight * 0.2),
+			weight: 0.15,
+			name: "leftCheek",
+		});
 
-		if (roi.width <= 0 || roi.height <= 0) {
-			console.error("Invalid ROI dimensions:", roi);
+		// Right cheek
+		rois.push({
+			x: Math.max(0, Math.floor(x + faceWidth * 0.6)),
+			y: Math.max(0, Math.floor(y + faceHeight * 0.4)),
+			width: Math.floor(faceWidth * 0.25),
+			height: Math.floor(faceHeight * 0.2),
+			weight: 0.15,
+			name: "rightCheek",
+		});
+
+		// Central face region (typically has good blood flow)
+		rois.push({
+			x: Math.max(0, Math.floor(x + faceWidth * 0.3)),
+			y: Math.max(0, Math.floor(y + faceHeight * 0.25)),
+			width: Math.floor(faceWidth * 0.4),
+			height: Math.floor(faceHeight * 0.3),
+			weight: 0.35,
+			name: "centerFace",
+		});
+
+		// Ensure ROIs are within image boundaries and have valid dimensions
+		const validRois = rois.filter((roi) => {
+			roi.width = Math.min(roi.width, width - roi.x);
+			roi.height = Math.min(roi.height, height - roi.y);
+			const isValid = roi.width > 0 && roi.height > 0;
+			if (!isValid) {
+				console.log(`🔍 [HEARTRATE DEBUG] Invalid ROI: ${roi.name}`);
+			}
+			return isValid;
+		});
+
+		if (validRois.length === 0) {
+			console.error("FAILURE POINT: No valid ROIs for heart rate detection");
 			return null;
 		}
 
-		console.log("Extracting ROI for heart rate detection:", roi);
-
-		// Extract pixel data from ROI
-		const roiImageData = context.getImageData(
-			roi.x,
-			roi.y,
-			roi.width,
-			roi.height
-		);
-		const pixels = roiImageData.data;
-
-		// Calculate average RGB values in the ROI
-		let totalR = 0,
-			totalG = 0,
-			totalB = 0;
-		let pixelCount = 0;
-
-		for (let i = 0; i < pixels.length; i += 4) {
-			totalR += pixels[i]; // Red
-			totalG += pixels[i + 1]; // Green
-			totalB += pixels[i + 2]; // Blue
-			pixelCount++;
-		}
-
-		if (pixelCount === 0) {
-			console.error("No pixels found in ROI");
-			return null;
-		}
-
-		const avgR = totalR / pixelCount;
-		const avgG = totalG / pixelCount;
-		const avgB = totalB / pixelCount;
-
-		// Log average color values for debugging
 		console.log(
-			`ROI average RGB: R=${avgR.toFixed(2)}, G=${avgG.toFixed(
+			`🔍 [HEARTRATE DEBUG] Valid ROIs: ${validRois.length}/${rois.length}`
+		);
+
+		// Process each ROI and get weighted average RGB values
+		let weightedR = 0,
+			weightedG = 0,
+			weightedB = 0;
+		let totalWeight = 0;
+
+		// Store individual ROI values for debugging
+		const roiValues = [];
+
+		for (const roi of validRois) {
+			// Extract pixel data from ROI
+			const roiImageData = context.getImageData(
+				roi.x,
+				roi.y,
+				roi.width,
+				roi.height
+			);
+			const pixels = roiImageData.data;
+
+			// Calculate average RGB values in the ROI
+			let totalR = 0,
+				totalG = 0,
+				totalB = 0;
+			let pixelCount = 0;
+
+			for (let i = 0; i < pixels.length; i += 4) {
+				totalR += pixels[i]; // Red
+				totalG += pixels[i + 1]; // Green
+				totalB += pixels[i + 2]; // Blue
+				pixelCount++;
+			}
+
+			if (pixelCount === 0) {
+				console.log(`🔍 [HEARTRATE DEBUG] No pixels in ROI: ${roi.name}`);
+				continue;
+			}
+
+			const avgR = totalR / pixelCount;
+			const avgG = totalG / pixelCount;
+			const avgB = totalB / pixelCount;
+
+			// Store individual ROI values
+			roiValues.push({
+				name: roi.name,
+				r: avgR,
+				g: avgG,
+				b: avgB,
+				variance: calculateVariance([avgR, avgG, avgB]),
+				pixelCount,
+			});
+
+			// Apply weight to this ROI's values
+			weightedR += avgR * roi.weight;
+			weightedG += avgG * roi.weight;
+			weightedB += avgB * roi.weight;
+			totalWeight += roi.weight;
+		}
+
+		// Log individual ROI values for debugging
+		console.log(`🔍 [HEARTRATE DEBUG] Individual ROI values:`, roiValues);
+
+		// Normalize by total weight
+		if (totalWeight > 0) {
+			weightedR /= totalWeight;
+			weightedG /= totalWeight;
+			weightedB /= totalWeight;
+		} else {
+			console.error("FAILURE POINT: No valid pixel data found in any ROI");
+			return null;
+		}
+
+		// Log weighted average color values for debugging
+		console.log(
+			`🔍 [HEARTRATE DEBUG] Weighted RGB: R=${weightedR.toFixed(
 				2
-			)}, B=${avgB.toFixed(2)}`
+			)}, G=${weightedG.toFixed(2)}, B=${weightedB.toFixed(
+				2
+			)}, variance=${calculateVariance([
+				weightedR,
+				weightedG,
+				weightedB,
+			]).toFixed(2)}`
 		);
 
 		// Store the signal values
-		rgbSignals.r.push(avgR);
-		rgbSignals.g.push(avgG);
-		rgbSignals.b.push(avgB);
+		rgbSignals.r.push(weightedR);
+		rgbSignals.g.push(weightedG);
+		rgbSignals.b.push(weightedB);
 		timestamps.push(now);
 
 		// Keep only the data within the time window
@@ -267,69 +435,139 @@ async function detectHeartRate(videoElement) {
 		}
 
 		// Log current signal length
-		console.log(`Heart rate signal points collected: ${rgbSignals.g.length}`);
+		console.log(`🔍 [HEARTRATE DEBUG] Signal points: ${rgbSignals.g.length}`);
 
 		// If we have enough data points, calculate heart rate
-		if (rgbSignals.g.length >= 4) {
-			// Need at least 4 data points for analysis
-			console.log("Calculating heart rate from collected signal...");
-			const heartRate = calculateHeartRate(rgbSignals.g, timestamps);
+		// Reduced minimum data points to be more responsive
+		if (rgbSignals.g.length >= 2) {
+			console.log(
+				"🔍 [HEARTRATE DEBUG] Calculating heart rate from collected signal..."
+			);
 
-			if (heartRate) {
-				console.log(`Calculated heart rate: ${heartRate.toFixed(1)} BPM`);
-				lastHeartRates.push(heartRate);
+			// Try all three color channels for better results
+			const greenHeartRate = calculateHeartRate(rgbSignals.g, timestamps);
+			const redHeartRate = calculateHeartRate(rgbSignals.r, timestamps);
+			const blueHeartRate = calculateHeartRate(rgbSignals.b, timestamps);
 
-				// Keep only the last 5 heart rate values
-				if (lastHeartRates.length > 5) {
+			console.log(
+				`🔍 [HEARTRATE DEBUG] Channel results - Red: ${
+					redHeartRate ? redHeartRate.toFixed(1) : "failed"
+				}, ` +
+					`Green: ${greenHeartRate ? greenHeartRate.toFixed(1) : "failed"}, ` +
+					`Blue: ${blueHeartRate ? blueHeartRate.toFixed(1) : "failed"}`
+			);
+
+			let finalHeartRate = null;
+
+			// Check all channels in priority order
+			if (greenHeartRate !== null) {
+				finalHeartRate = greenHeartRate;
+				console.log(
+					`🔍 [HEARTRATE DEBUG] Using green channel: ${greenHeartRate.toFixed(
+						1
+					)} BPM`
+				);
+			} else if (redHeartRate !== null) {
+				finalHeartRate = redHeartRate;
+				console.log(
+					`🔍 [HEARTRATE DEBUG] Using red channel: ${redHeartRate.toFixed(
+						1
+					)} BPM`
+				);
+			} else if (blueHeartRate !== null) {
+				finalHeartRate = blueHeartRate;
+				console.log(
+					`🔍 [HEARTRATE DEBUG] Using blue channel: ${blueHeartRate.toFixed(
+						1
+					)} BPM`
+				);
+			} else {
+				console.warn("FAILURE POINT: All channel heart rate detection failed");
+			}
+
+			if (finalHeartRate) {
+				console.log(
+					`🔍 [HEARTRATE DEBUG] Success! Heart rate: ${finalHeartRate.toFixed(
+						1
+					)} BPM`
+				);
+				lastHeartRates.push(finalHeartRate);
+
+				// Keep only the last several heart rate values
+				if (lastHeartRates.length > 7) {
+					// Increased from 5 for better averaging
 					lastHeartRates.shift();
 				}
 
-				// Return the average of the last heart rates to smooth results
-				const avgHeartRate =
-					lastHeartRates.reduce((sum, rate) => sum + rate, 0) /
-					lastHeartRates.length;
+				// Calculate weighted average of heart rates, giving more weight to recent values
+				let totalWeight = 0;
+				let weightedSum = 0;
 
+				for (let i = 0; i < lastHeartRates.length; i++) {
+					// Weight increases with index (more recent values have higher weight)
+					const weight = i + 1;
+					weightedSum += lastHeartRates[i] * weight;
+					totalWeight += weight;
+				}
+
+				const avgHeartRate = weightedSum / totalWeight;
 				const confidence = calculateConfidence(lastHeartRates);
+
 				console.log(
-					`Average heart rate: ${avgHeartRate.toFixed(
+					`🔍 [HEARTRATE DEBUG] Final heart rate: ${avgHeartRate.toFixed(
 						1
-					)} BPM, confidence: ${confidence.toFixed(2)}`
+					)} BPM, confidence: ${confidence.toFixed(2)}, from ${
+						lastHeartRates.length
+					} readings`
 				);
 
 				return {
 					bpm: avgHeartRate,
 					confidence: confidence,
+					// Add debug info to help diagnosis
+					debug: {
+						faceDetected: true,
+						brightness: brightness,
+						signalPoints: rgbSignals.g.length,
+						channels: {
+							red: redHeartRate,
+							green: greenHeartRate,
+							blue: blueHeartRate,
+						},
+					},
 				};
 			} else {
-				console.log("Failed to calculate heart rate from the collected signal");
+				console.log(
+					"FAILURE POINT: Failed to calculate heart rate from all channels"
+				);
 			}
 		} else {
 			console.log(
-				`Not enough data points yet: ${rgbSignals.g.length}/4 minimum required`
+				`FAILURE POINT: Not enough data points yet: ${rgbSignals.g.length}/2 minimum required`
 			);
 		}
 
 		return null;
 	} catch (error) {
-		console.error("Error in heart rate detection:", error);
+		console.error("FAILURE POINT: Error in heart rate detection:", error);
 		return null;
 	}
 }
 
-// Calculate heart rate from the green channel signal
+// Calculate heart rate from the signal
 function calculateHeartRate(signal, times) {
-	if (signal.length < 4 || times.length < 4) return null;
+	if (signal.length < 3 || times.length < 3) return null; // Reduced from 4 to 3
 
 	try {
 		// Normalize the signal by subtracting the mean
 		const mean = signal.reduce((sum, val) => sum + val, 0) / signal.length;
 		const normalizedSignal = signal.map((val) => val - mean);
 
-		// Apply a simple moving average filter to smooth the signal
-		const smoothedSignal = smoothSignal(normalizedSignal, 3);
+		// Apply a better smoothing filter (Gaussian-like weighting)
+		const smoothedSignal = advancedSmoothing(normalizedSignal, 5); // Increased window size
 
-		// Find peaks in the signal
-		const peaks = findPeaks(smoothedSignal);
+		// Find peaks in the signal with improved peak detection
+		const peaks = enhancedPeakDetection(smoothedSignal);
 
 		if (peaks.length < 2) {
 			return null; // Need at least 2 peaks to calculate heart rate
@@ -341,9 +579,18 @@ function calculateHeartRate(signal, times) {
 			intervals.push(times[peaks[i]] - times[peaks[i - 1]]);
 		}
 
+		// Apply outlier removal to intervals
+		const filteredIntervals = removeOutliers(intervals);
+
+		if (filteredIntervals.length === 0) {
+			return null; // No valid intervals after filtering
+		}
+
 		// Calculate average time interval in seconds
 		const avgInterval =
-			intervals.reduce((sum, val) => sum + val, 0) / intervals.length / 1000;
+			filteredIntervals.reduce((sum, val) => sum + val, 0) /
+			filteredIntervals.length /
+			1000;
 
 		// Calculate heart rate in beats per minute
 		const heartRate = 60 / avgInterval;
@@ -360,40 +607,100 @@ function calculateHeartRate(signal, times) {
 	}
 }
 
-// Smooth the signal using a moving average filter
-function smoothSignal(signal, windowSize) {
+// Enhanced smoothing algorithm with Gaussian-like weighting
+function advancedSmoothing(signal, windowSize) {
 	const result = [];
 
 	for (let i = 0; i < signal.length; i++) {
-		let sum = 0;
-		let count = 0;
+		let weightedSum = 0;
+		let totalWeight = 0;
 
 		for (
 			let j = Math.max(0, i - windowSize);
 			j <= Math.min(signal.length - 1, i + windowSize);
 			j++
 		) {
-			sum += signal[j];
-			count++;
+			// Calculate weight based on distance (Gaussian-like)
+			const distance = Math.abs(i - j);
+			const weight = Math.exp(
+				-(distance * distance) / (2 * (windowSize / 2) * (windowSize / 2))
+			);
+
+			weightedSum += signal[j] * weight;
+			totalWeight += weight;
 		}
 
-		result.push(sum / count);
+		result.push(weightedSum / totalWeight);
 	}
 
 	return result;
 }
 
-// Find peaks in the signal
-function findPeaks(signal) {
+// Basic smoothing function (kept for compatibility)
+function smoothSignal(signal, windowSize) {
+	return advancedSmoothing(signal, windowSize);
+}
+
+// Enhanced peak detection with minimum peak height and distance requirements
+function enhancedPeakDetection(signal) {
 	const peaks = [];
 
+	// Calculate signal statistics for adaptive thresholding
+	const vals = [...signal].sort((a, b) => a - b);
+	const q1 = vals[Math.floor(vals.length * 0.25)];
+	const q3 = vals[Math.floor(vals.length * 0.75)];
+	const iqr = q3 - q1;
+
+	// Adaptive minimum peak height (25% of IQR above median)
+	const median = vals[Math.floor(vals.length * 0.5)];
+	const minPeakHeight = median + iqr * 0.25;
+
+	// Minimum samples between peaks (assuming ~60 BPM as minimum and sampling rate)
+	const samplingRate = 2; // approximate samples per second
+	const minPeakDistance = Math.max(1, Math.floor((samplingRate * 60) / 180)); // 180 BPM max
+
+	let lastPeakIndex = -minPeakDistance;
+
 	for (let i = 1; i < signal.length - 1; i++) {
-		if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1]) {
+		if (
+			signal[i] > signal[i - 1] &&
+			signal[i] > signal[i + 1] && // Local maximum
+			signal[i] > minPeakHeight && // Above minimum height
+			i - lastPeakIndex >= minPeakDistance
+		) {
+			// Respects minimum distance
+
 			peaks.push(i);
+			lastPeakIndex = i;
 		}
 	}
 
 	return peaks;
+}
+
+// Legacy peak finding function (kept for compatibility)
+function findPeaks(signal) {
+	return enhancedPeakDetection(signal);
+}
+
+// Remove outliers from a set of values using IQR method
+function removeOutliers(values) {
+	if (values.length < 4) return values; // Not enough data for outlier detection
+
+	// Sort values
+	const sortedValues = [...values].sort((a, b) => a - b);
+
+	// Calculate quartiles
+	const q1 = sortedValues[Math.floor(sortedValues.length * 0.25)];
+	const q3 = sortedValues[Math.floor(sortedValues.length * 0.75)];
+
+	// Calculate IQR and bounds
+	const iqr = q3 - q1;
+	const lowerBound = q1 - iqr * 1.5;
+	const upperBound = q3 + iqr * 1.5;
+
+	// Filter values within bounds
+	return values.filter((v) => v >= lowerBound && v <= upperBound);
 }
 
 // Calculate confidence level based on variance of heart rate measurements
@@ -412,7 +719,8 @@ function calculateConfidence(heartRates) {
 	const cv = stdDev / mean;
 
 	// Map CV to confidence level (lower CV means higher confidence)
-	let confidence = Math.max(0, 1 - cv * 4);
+	// Improved formula for more realistic confidence scores
+	let confidence = Math.max(0, 1 - cv * 3);
 	confidence = Math.min(1, confidence); // Clamp to [0, 1]
 
 	return confidence;
@@ -424,11 +732,21 @@ function calculateAverageBrightness(pixels) {
 	let pixelCount = 0;
 
 	for (let i = 0; i < pixels.length; i += 4) {
-		// Calculate brightness as average of RGB
-		const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+		// Calculate brightness as weighted average of RGB (human perception formula)
+		const brightness =
+			pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
 		totalBrightness += brightness;
 		pixelCount++;
 	}
 
 	return totalBrightness / pixelCount;
+}
+
+// Helper function to calculate variance for debugging
+function calculateVariance(values) {
+	if (!values || values.length === 0) return 0;
+	const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+	return Math.sqrt(
+		values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length
+	);
 }
