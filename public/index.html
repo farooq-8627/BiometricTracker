@@ -3,8 +3,20 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Eye Tracking & Heart Rate Monitoring System</title>
+		<title>Biometric Remote Work Analysis</title>
 		<link rel="stylesheet" href="styles.css" />
+		<!-- Google Fonts: Poppins -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<!-- Font Awesome Icons -->
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+		/>
 		<!-- TensorFlow.js for ML processing -->
 		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 		<!-- Chart.js for data visualization -->
@@ -17,40 +29,270 @@
 		<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 		<!-- Face API - single library instance used throughout the application -->
 		<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+		<!-- AOS Animation Library -->
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css"
+		/>
 		<!-- Centralized Face API Loader -->
 		<script src="faceApiLoader.js"></script>
 		<!-- Model downloader script -->
 		<script src="downloadModels.js"></script>
 	</head>
 	<body>
-		<div class="device-selector">
-			<h1>Eye Tracking & Heart Rate Monitoring System</h1>
-			<p>Select your device type:</p>
-			<div class="button-container">
-				<button id="mobile-btn" class="device-btn">
-					<i data-feather="smartphone"></i>
-					Phone
-				</button>
-				<button id="laptop-btn" class="device-btn">
-					<i data-feather="monitor"></i>
-					Laptop
-				</button>
-			</div>
-			<div class="download-models-container">
-				<button id="download-models-btn" class="support-btn">
-					<i data-feather="download-cloud"></i>
-					Download ML Models
-				</button>
-				<p class="download-note">
-					Download models for offline use and better emotion detection
-				</p>
+		<!-- Device Selection - Modern Home Page Design -->
+		<div id="device-selector" class="device-selector">
+			<!-- Header Section -->
+			<header class="home-header" data-aos="fade-in" data-aos-duration="1200">
+				<h1>Biometric Remote Work Analysis</h1>
+				<div class="subtitle">
+					Explore the intersection of biometric tracking and remote work
+					productivity with our innovative research system
+				</div>
+				<div class="authors">
+					<p>A research project by Umar Farooq, Sirichandana, Akhib Usman and Charishma</p>
+					<p>SRM University of Science and Technology</p>
+				</div>
+			</header>
+
+			<!-- Main Content -->
+			<div class="home-content">
+				<!-- Main Feature Card -->
+				<div class="content-card" data-aos="fade-up" data-aos-duration="1000">
+					<div class="main-feature">
+						<div class="feature-content">
+							<h2>Biometric Analysis</h2>
+							<p>
+								Our system uses computer vision and machine learning to track
+								and analyze biometric signals during remote work sessions,
+								providing insights into productivity patterns, stress levels,
+								and focus metrics.
+							</p>
+							<ul class="feature-list">
+								<li class="animate-feature">
+									<i class="fas fa-eye"></i> Eye movement tracking and analysis
+								</li>
+								<li class="animate-feature">
+									<i class="fas fa-heartbeat"></i> Heart rate monitoring for
+									stress detection
+								</li>
+								<li class="animate-feature">
+									<i class="fas fa-brain"></i> Cognitive load assessment
+								</li>
+								<li class="animate-feature">
+									<i class="fas fa-chart-line"></i> Real-time productivity
+									metrics
+								</li>
+								<li class="animate-feature">
+									<i class="fas fa-laptop-code"></i> Cross-device compatibility
+								</li>
+							</ul>
+						</div>
+						<div class="feature-visual">
+							<div class="visual-container">
+								<div class="biometric-visual">
+									<!-- Brain wave representations -->
+									<div class="brain-waves">
+										<div class="wave-alpha"></div>
+										<div class="wave-beta"></div>
+										<div class="wave-theta"></div>
+										<!-- Add second set of waves with different phases -->
+										<div class="wave-alpha" style="animation-delay: 2s"></div>
+										<div class="wave-beta" style="animation-delay: 2.5s"></div>
+										<div class="wave-theta" style="animation-delay: 3s"></div>
+									</div>
+
+									<!-- Grid overlay -->
+									<div class="grid-overlay"></div>
+
+									<!-- Data points positioned at specific coordinates -->
+									<div class="data-point" style="top: 30%; left: 20%"></div>
+									<div class="data-point" style="top: 25%; left: 75%"></div>
+									<div class="data-point" style="top: 70%; left: 30%"></div>
+									<div class="data-point" style="top: 60%; left: 80%"></div>
+									<div class="data-point" style="top: 45%; left: 55%"></div>
+									<div class="data-point" style="top: 80%; left: 50%"></div>
+									<!-- Add more data points with different animation offsets -->
+									<div
+										class="data-point"
+										style="top: 40%; left: 40%; animation-delay: 1.5s"
+									></div>
+									<div
+										class="data-point"
+										style="top: 65%; left: 65%; animation-delay: 2.7s"
+									></div>
+									<div
+										class="data-point"
+										style="top: 20%; left: 50%; animation-delay: 1.2s"
+									></div>
+									<div
+										class="data-point"
+										style="top: 50%; left: 25%; animation-delay: 2.2s"
+									></div>
+
+									<!-- Pulse circle in the center -->
+									<div class="pulse-circle"></div>
+
+									<!-- ECG (Heart rate) line at the bottom -->
+									<div class="ecg-container">
+										<svg
+											viewBox="0 0 300 60"
+											xmlns="http://www.w3.org/2000/svg"
+										>
+											<path
+												class="ecg-line"
+												d="M0,30 Q25,30 50,30 T75,30 T100,30 L120,30 L130,10 L140,50 L150,30 L170,30 L180,20 L190,40 L200,30 L220,30 Q245,30 270,30 T300,30"
+											/>
+										</svg>
+									</div>
+
+									<!-- Iris container with pupil in the center -->
+									<div class="iris-container">
+										<div class="iris">
+											<div class="pupil"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Project Framework -->
+				<section class="project-details" data-aos="fade-up">
+					<h2>Project Framework</h2>
+					<div class="details-grid">
+						<div class="detail-card" data-aos="fade-up" data-aos-delay="100">
+							<div class="card-icon">
+								<i class="fas fa-camera"></i>
+							</div>
+							<h3>Computer Vision</h3>
+							<p>
+								Utilizing advanced computer vision algorithms to detect and
+								track facial features, eye movements, and micro-expressions for
+								comprehensive biometric analysis.
+							</p>
+						</div>
+						<div class="detail-card" data-aos="fade-up" data-aos-delay="200">
+							<div class="card-icon">
+								<i class="fas fa-robot"></i>
+							</div>
+							<h3>Machine Learning</h3>
+							<p>
+								Employing machine learning models trained on diverse datasets to
+								identify patterns in biometric signals and correlate them with
+								productivity metrics.
+							</p>
+						</div>
+						<div class="detail-card" data-aos="fade-up" data-aos-delay="300">
+							<div class="card-icon">
+								<i class="fas fa-database"></i>
+							</div>
+							<h3>Data Analysis</h3>
+							<p>
+								Real-time processing and analysis of biometric data to provide
+								actionable insights through intuitive visualizations and
+								comprehensive dashboards.
+							</p>
+						</div>
+					</div>
+				</section>
+
+				<!-- System Workflow -->
+				<section class="system-workflow" data-aos="fade-up">
+					<h2>System Workflow</h2>
+					<div class="workflow-diagram">
+						<div class="workflow-step" data-aos="fade-up" data-aos-delay="100">
+							<div class="step-number">1</div>
+							<div class="step-icon">
+								<i class="fas fa-camera-retro"></i>
+							</div>
+							<div class="step-description">
+								Camera captures facial features and eye movements during work
+								sessions
+							</div>
+						</div>
+						<div class="workflow-arrow" data-aos="fade-up" data-aos-delay="150">
+							<i class="fas fa-chevron-right"></i>
+						</div>
+						<div class="workflow-step" data-aos="fade-up" data-aos-delay="200">
+							<div class="step-number">2</div>
+							<div class="step-icon">
+								<i class="fas fa-heartbeat"></i>
+							</div>
+							<div class="step-description">
+								Heart rate is measured using remote photoplethysmography (rPPG)
+							</div>
+						</div>
+						<div class="workflow-arrow" data-aos="fade-up" data-aos-delay="250">
+							<i class="fas fa-chevron-right"></i>
+						</div>
+						<div class="workflow-step" data-aos="fade-up" data-aos-delay="300">
+							<div class="step-number">3</div>
+							<div class="step-icon">
+								<i class="fas fa-microchip"></i>
+							</div>
+							<div class="step-description">
+								AI algorithms process and analyze the biometric data in
+								real-time
+							</div>
+						</div>
+						<div class="workflow-arrow" data-aos="fade-up" data-aos-delay="350">
+							<i class="fas fa-chevron-right"></i>
+						</div>
+						<div class="workflow-step" data-aos="fade-up" data-aos-delay="400">
+							<div class="step-number">4</div>
+							<div class="step-icon">
+								<i class="fas fa-chart-bar"></i>
+							</div>
+							<div class="step-description">
+								Results are displayed on an interactive dashboard with
+								actionable insights
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- Device Selection -->
+				<section class="device-selection" data-aos="fade-up">
+					<h3>Select Your Device to Begin</h3>
+					<div class="button-container">
+						<!-- Preserve original IDs for functionality -->
+						<button
+							id="mobile-btn"
+							class="device-btn"
+							data-aos="fade-up"
+							data-aos-delay="100"
+						>
+							<i class="fas fa-camera"></i>
+							<span class="device-btn-text">Tracker</span>
+						</button>
+						<button
+							id="laptop-btn"
+							class="device-btn"
+							data-aos="fade-up"
+							data-aos-delay="200"
+						>
+							<i class="fas fa-chart-bar"></i>
+							<span class="device-btn-text">Dashboard</span>
+						</button>
+					</div>
+				</section>
+
+				<!-- Footer -->
+				<footer class="home-footer">
+					<div>Biometric Remote Work Analysis - Research Project</div>
+					<div class="copyright">
+						© 2023 Computer Vision and AI Lab. All rights reserved.
+					</div>
+				</footer>
 			</div>
 		</div>
 
 		<!-- Mobile Interface (hidden by default) -->
 		<div id="mobile-interface" class="interface-container hidden">
 			<div class="header">
-				<h2>Mobile Data Collection</h2>
+				<h2>Tracker Data Collection</h2>
 				<div id="connection-status" class="status not-connected">
 					Not Connected
 				</div>
@@ -72,7 +314,7 @@
 				</button>
 				<button id="pair-device" class="control-btn">
 					<i data-feather="link"></i>
-					Pair with Laptop
+					Pair with Dashboard
 				</button>
 				<button id="mobile-download-models" class="control-btn">
 					<i data-feather="download-cloud"></i>
@@ -86,7 +328,7 @@
 			</div>
 
 			<div id="pairing-panel" class="panel hidden">
-				<h3>Available Laptops</h3>
+				<h3>Available Dashboards</h3>
 				<ul id="available-laptops"></ul>
 			</div>
 
@@ -230,7 +472,7 @@
 					<h3>Connected Devices</h3>
 					<ul id="connected-devices"></ul>
 					<div id="pairing-requests"></div>
-					<h4>Available Mobile Devices</h4>
+					<h4>Available Tracker Devices</h4>
 					<ul id="available-mobiles"></ul>
 				</div>
 
@@ -267,25 +509,38 @@
 
 		<!-- Device Specific Scripts (loaded dynamically) -->
 
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
 		<script>
-			// Initialize Feather icons
-			document.addEventListener("DOMContentLoaded", () => {
+			// Initialize AOS animations
+			AOS.init({
+				once: true,
+				offset: 100,
+			});
+
+			// Add scroll fix
+			window.onload = function () {
+				// Force browser to recalculate scroll position
+				setTimeout(function () {
+					window.scrollTo(0, 0);
+					document.body.style.height = "auto";
+					document.documentElement.style.height = "auto";
+				}, 100);
+			};
+
+			// Feature list sequential animation
+			document.addEventListener("DOMContentLoaded", function () {
+				const features = document.querySelectorAll(".animate-feature");
+
+				// Sequentially animate features with a delay
+				features.forEach((feature, index) => {
+					setTimeout(() => {
+						feature.classList.add("animate-in");
+					}, 1000 + index * 200); // Start after 1s, then 200ms between each
+				});
+
 				// Suppress TensorFlow warnings to avoid console clutter
 				if (window.faceApiLoader) {
 					window.faceApiLoader.suppressTensorflowWarnings();
-				}
-
-				// Check if feather is defined before using it
-				if (typeof feather !== "undefined") {
-					feather.replace();
-				} else {
-					console.error("Feather icons library not loaded");
-					// Try to load it again
-					const featherScript = document.createElement("script");
-					featherScript.src =
-						"https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js";
-					featherScript.onload = () => feather.replace();
-					document.head.appendChild(featherScript);
 				}
 
 				// Pre-initialize face-api to load models early
@@ -301,7 +556,7 @@
 				// Add download models button event listeners
 				document
 					.getElementById("download-models-btn")
-					.addEventListener("click", () => {
+					?.addEventListener("click", () => {
 						if (typeof downloadFaceApiModels === "function") {
 							downloadFaceApiModels();
 						} else {
@@ -311,9 +566,37 @@
 						}
 					});
 
-				// Setup mobile download button when interface is shown
-				document.getElementById("mobile-btn").addEventListener("click", () => {
-					// Once mobile interface is loaded, set up the model download button
+				// Check if models need to be downloaded on first load
+				setTimeout(() => {
+					if (typeof checkModelsDownloadNeeded === "function") {
+						checkModelsDownloadNeeded();
+					}
+				}, 2000);
+
+				// Device selection functionality
+				const mobileBtn = document.getElementById("mobile-btn");
+				const laptopBtn = document.getElementById("laptop-btn");
+				const deviceSelector = document.getElementById("device-selector");
+				const mobileInterface = document.getElementById("mobile-interface");
+				const laptopInterface = document.getElementById("laptop-interface");
+
+				// Mobile button click event handler (now Tracker)
+				mobileBtn.addEventListener("click", function () {
+					deviceSelector.classList.add("hidden");
+					mobileInterface.classList.remove("hidden");
+
+					// Dynamically load mobile script
+					const mobileScript = document.createElement("script");
+					mobileScript.src = "mobile.js";
+					document.body.appendChild(mobileScript);
+
+					mobileScript.onload = () => {
+						if (typeof initializeMobileInterface === "function") {
+							initializeMobileInterface();
+						}
+					};
+
+					// Setup mobile download button
 					setTimeout(() => {
 						const mobileDownloadBtn = document.getElementById(
 							"mobile-download-models"
@@ -332,35 +615,10 @@
 					}, 500);
 				});
 
-				// Check if models need to be downloaded on first load
-				setTimeout(() => {
-					if (typeof checkModelsDownloadNeeded === "function") {
-						checkModelsDownloadNeeded();
-					}
-				}, 2000);
-
-				// Setup device selection
-				document.getElementById("mobile-btn").addEventListener("click", () => {
-					document.querySelector(".device-selector").classList.add("hidden");
-					document
-						.getElementById("mobile-interface")
-						.classList.remove("hidden");
-
-					// Dynamically load mobile script
-					const mobileScript = document.createElement("script");
-					mobileScript.src = "mobile.js";
-					document.body.appendChild(mobileScript);
-
-					mobileScript.onload = () => {
-						initializeMobileInterface();
-					};
-				});
-
-				document.getElementById("laptop-btn").addEventListener("click", () => {
-					document.querySelector(".device-selector").classList.add("hidden");
-					document
-						.getElementById("laptop-interface")
-						.classList.remove("hidden");
+				// Laptop button click event handler (now Dashboard)
+				laptopBtn.addEventListener("click", function () {
+					deviceSelector.classList.add("hidden");
+					laptopInterface.classList.remove("hidden");
 
 					// Dynamically load laptop script
 					const laptopScript = document.createElement("script");
@@ -368,7 +626,9 @@
 					document.body.appendChild(laptopScript);
 
 					laptopScript.onload = () => {
-						initializeLaptopInterface();
+						if (typeof initializeLaptopInterface === "function") {
+							initializeLaptopInterface();
+						}
 					};
 				});
 			});

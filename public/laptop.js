@@ -1,4 +1,4 @@
-// Global variables for laptop interface
+// Global variables for dashboard interface
 let socket; // Socket.io socket
 let ws; // WebSocket connection
 let pairedMobileId = null;
@@ -16,9 +16,9 @@ let useWebSocket = true; // Flag to determine which connection to use
 let totalBlinkCount = 0; // Track the cumulative blink count
 let lastBlinkCount = 0; // Track the last blink count for change detection
 
-// Initialize the laptop interface
+// Initialize the dashboard interface
 function initializeLaptopInterface() {
-	console.log("Initializing laptop interface...");
+	console.log("Initializing dashboard interface...");
 
 	// Try to establish WebSocket connection first
 	try {
@@ -31,32 +31,32 @@ function initializeLaptopInterface() {
 				if (pairedMobileId === mobileId) {
 					pairedMobileId = null;
 					updateConnectionStatus(
-						"Paired mobile device disconnected",
+						"Paired tracker device disconnected",
 						"not-connected"
 					);
 					resetData();
 				}
 			},
 			onPairRequest: (mobileId) => {
-				console.log("Received pairing request from mobile device:", mobileId);
+				console.log("Received pairing request from tracker device:", mobileId);
 				if (
 					confirm(
-						`Mobile device (${mobileId.substring(
+						`Tracker device (${mobileId.substring(
 							0,
 							8
-						)}...) wants to pair with your laptop. Accept?`
+						)}...) wants to pair with your dashboard. Accept?`
 					)
 				) {
 					acceptPairRequest(ws, mobileId);
 					pairedMobileId = mobileId;
-					updateConnectionStatus("Paired with mobile device", "connected");
+					updateConnectionStatus("Paired with tracker device", "connected");
 					addToConnectedDevices(mobileId);
 				}
 			},
 			onPairConfirmed: (mobileId) => {
-				console.log("Pairing confirmed with mobile device:", mobileId);
+				console.log("Pairing confirmed with tracker device:", mobileId);
 				pairedMobileId = mobileId;
-				updateConnectionStatus("Paired with mobile device", "connected");
+				updateConnectionStatus("Paired with tracker device", "connected");
 				addToConnectedDevices(mobileId);
 			},
 			onEyeTrackingUpdate: (sourceId, data) => {
@@ -73,7 +73,7 @@ function initializeLaptopInterface() {
 					data
 				);
 				if (sourceId === pairedMobileId) {
-					console.log("Processing heart rate data from paired mobile:", data);
+					console.log("Processing heart rate data from paired tracker:", data);
 					processHeartRateData(data);
 				} else {
 					console.warn(
@@ -90,7 +90,7 @@ function initializeLaptopInterface() {
 			},
 		});
 
-		// Register as laptop device via WebSocket
+		// Register as dashboard device via WebSocket
 		ws.onopen = () => {
 			console.log("WebSocket connection established");
 			updateConnectionStatus("Connected to server via WebSocket", "connected");
@@ -137,16 +137,56 @@ function initializeEyeTrackingVisualization() {
 
 	// Face outline
 	ctx.beginPath();
+	ctx.ellipse(0, 0, faceRadius, faceRadius * 1.3, 0, 0, Math.PI * 2);
+	ctx.strokeStyle = "#9090e0"; // Slightly brighter blue-purple
+	ctx.lineWidth = 3; // Thicker outline
+	ctx.stroke();
+
+	// Add a subtle glow to the face outline
+	ctx.save();
+	ctx.beginPath();
+	ctx.ellipse(0, 0, faceRadius + 2, faceRadius * 1.3 + 2, 0, 0, Math.PI * 2);
+	ctx.strokeStyle = "rgba(144, 144, 224, 0.3)"; // Translucent blue-purple
+	ctx.lineWidth = 6; // Wider for glow effect
+	ctx.stroke();
+	ctx.restore();
+
+	// Draw eyes
+	const eyeRadius = faceRadius * 0.2;
+	const eyeOffsetX = faceRadius * 0.4;
+	const eyeOffsetY = -faceRadius * 0.1;
+
+	// Left eye
+	ctx.beginPath();
 	ctx.ellipse(
-		centerX,
-		centerY,
-		faceRadius,
-		faceRadius * 1.3,
+		-eyeOffsetX,
+		eyeOffsetY,
+		eyeRadius,
+		eyeRadius * 0.6,
 		0,
 		0,
 		Math.PI * 2
 	);
-	ctx.strokeStyle = "#ccc";
+	ctx.fillStyle = "#e8e8ff"; // Slightly brighter blue-lavender
+	ctx.fill();
+	ctx.strokeStyle = "#9090e0"; // Match face outline color
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// Right eye
+	ctx.beginPath();
+	ctx.ellipse(
+		eyeOffsetX,
+		eyeOffsetY,
+		eyeRadius,
+		eyeRadius * 0.6,
+		0,
+		0,
+		Math.PI * 2
+	);
+	ctx.fillStyle = "#e8e8ff"; // Slightly brighter blue-lavender
+	ctx.fill();
+	ctx.strokeStyle = "#9090e0"; // Match face outline color
 	ctx.lineWidth = 2;
 	ctx.stroke();
 
@@ -304,168 +344,216 @@ function setupUIEventListeners() {
 
 // Set up the charts
 function setupCharts() {
-	// Eye Movement Chart
-	const eyeMovementCtx = document
-		.getElementById("eye-movement-chart")
-		.getContext("2d");
-	eyeMovementChart = new Chart(eyeMovementCtx, {
+	const commonChartOptions = {
+		scales: {
+			x: {
+				grid: {
+					color: "rgba(70, 70, 120, 0.3)", // Light color for grid lines
+				},
+				ticks: {
+					color: "#b0b0d0", // Light blue-purple for ticks
+				},
+				title: {
+					display: true,
+					color: "#c0c0e0", // Light blue-purple color
+				},
+			},
+			y: {
+				grid: {
+					color: "rgba(70, 70, 120, 0.3)", // Light color for grid lines
+				},
+				ticks: {
+					color: "#b0b0d0", // Light blue-purple for ticks
+				},
+				title: {
+					display: true,
+					color: "#c0c0e0", // Light blue-purple color
+				},
+			},
+		},
+		plugins: {
+			legend: {
+				labels: {
+					color: "#c0c0e0", // Light blue-purple color
+				},
+			},
+		},
+	};
+
+	// Heart Rate Chart
+	const heartRateChartCanvas = document.getElementById("heart-rate-chart");
+	heartRateChart = new Chart(heartRateChartCanvas.getContext("2d"), {
 		type: "line",
 		data: {
-			labels: [],
+			labels: Array(30).fill(""),
 			datasets: [
 				{
-					label: "Blink Rate",
-					data: [],
-					borderColor: "#4a6fa5",
-					backgroundColor: "rgba(74, 111, 165, 0.2)",
-					tension: 0.4,
-					fill: true,
-				},
-				{
-					label: "Saccade Velocity",
-					data: [],
-					borderColor: "#f44336",
-					backgroundColor: "rgba(244, 67, 54, 0.2)",
-					tension: 0.4,
+					label: "Heart Rate (BPM)",
+					data: Array(30).fill(null),
+					borderColor: "rgb(255, 99, 132)",
+					backgroundColor: "rgba(255, 99, 132, 0.2)",
+					borderWidth: 2,
+					tension: 0.1,
 					fill: true,
 				},
 			],
 		},
 		options: {
+			...commonChartOptions,
 			responsive: true,
 			maintainAspectRatio: false,
 			scales: {
-				x: {
-					display: true,
-					title: {
-						display: true,
-						text: "Time",
-					},
-				},
+				...commonChartOptions.scales,
 				y: {
-					display: true,
+					...commonChartOptions.scales.y,
 					title: {
-						display: true,
-						text: "Value",
+						...commonChartOptions.scales.y.title,
+						text: "BPM",
+					},
+					min: 40,
+					max: 140,
+				},
+				x: {
+					...commonChartOptions.scales.x,
+					title: {
+						...commonChartOptions.scales.x.title,
+						text: "Time",
 					},
 				},
 			},
 		},
 	});
 
-	// Blink Detection Chart - new chart for visualizing blinks
-	const blinkChartCtx = document.getElementById("blink-chart").getContext("2d");
-	blinkChart = new Chart(blinkChartCtx, {
+	// Eye Movement Chart
+	const eyeMovementChartCanvas = document.getElementById("eye-movement-chart");
+	eyeMovementChart = new Chart(eyeMovementChartCanvas.getContext("2d"), {
 		type: "line",
 		data: {
-			labels: [],
+			labels: Array(30).fill(""),
 			datasets: [
 				{
-					label: "Eye Aspect Ratio",
-					data: [],
-					borderColor: "#4a6fa5",
-					backgroundColor: "rgba(74, 111, 165, 0.2)",
-					tension: 0.4,
-					fill: false,
+					label: "Blink Rate",
+					data: Array(30).fill(null),
+					borderColor: "rgb(54, 162, 235)",
+					backgroundColor: "rgba(54, 162, 235, 0.2)",
+					borderWidth: 2,
+					tension: 0.1,
+					fill: true,
 					yAxisID: "y",
 				},
 				{
-					label: "Blink Detection",
-					data: [],
-					borderColor: "#f44336",
-					backgroundColor: "rgba(244, 67, 54, 0.5)",
-					stepped: true,
-					pointRadius: 0,
+					label: "Saccade Velocity",
+					data: Array(30).fill(null),
+					borderColor: "rgb(75, 192, 192)",
+					backgroundColor: "rgba(75, 192, 192, 0.2)",
+					borderWidth: 2,
+					tension: 0.1,
 					fill: true,
 					yAxisID: "y1",
 				},
 			],
 		},
 		options: {
+			...commonChartOptions,
 			responsive: true,
 			maintainAspectRatio: false,
 			scales: {
-				x: {
-					display: true,
-					title: {
-						display: true,
-						text: "Time",
-					},
-				},
 				y: {
-					display: true,
-					position: "left",
+					...commonChartOptions.scales.y,
 					title: {
-						display: true,
-						text: "Eye Aspect Ratio",
+						...commonChartOptions.scales.y.title,
+						text: "Blinks/min",
 					},
 					min: 0,
-					max: 0.5,
+					max: 60,
 				},
 				y1: {
-					display: true,
+					...commonChartOptions.scales.y,
 					position: "right",
 					title: {
-						display: true,
-						text: "Blink",
+						...commonChartOptions.scales.y.title,
+						text: "Velocity (px/s)",
 					},
 					min: 0,
-					max: 1,
+					max: 500,
 					grid: {
-						drawOnChartArea: false,
+						drawOnChartArea: false, // only show grid for left axis
 					},
 				},
-			},
-			plugins: {
-				title: {
-					display: true,
-					text: "Eye Blink Detection",
-					font: {
-						size: 16,
+				x: {
+					...commonChartOptions.scales.x,
+					title: {
+						...commonChartOptions.scales.x.title,
+						text: "Time",
 					},
 				},
 			},
 		},
 	});
 
-	// Heart Rate Chart
-	const heartRateCtx = document
-		.getElementById("heart-rate-chart")
-		.getContext("2d");
-	heartRateChart = new Chart(heartRateCtx, {
+	// Blink Chart
+	const blinkChartCanvas = document.getElementById("blink-chart");
+	blinkChart = new Chart(blinkChartCanvas.getContext("2d"), {
 		type: "line",
 		data: {
-			labels: [],
+			labels: Array(100).fill(""),
 			datasets: [
 				{
-					label: "Heart Rate (BPM)",
-					data: [],
-					borderColor: "#f44336",
-					backgroundColor: "rgba(244, 67, 54, 0.2)",
-					tension: 0.4,
+					label: "Eye Aspect Ratio",
+					data: Array(100).fill(null),
+					borderColor: "rgb(153, 102, 255)",
+					backgroundColor: "rgba(153, 102, 255, 0.2)",
+					borderWidth: 2,
+					tension: 0.1,
 					fill: true,
+					yAxisID: "y",
+				},
+				{
+					label: "Blink Detection",
+					data: Array(100).fill(null),
+					borderColor: "rgb(255, 159, 64)",
+					backgroundColor: "rgba(255, 159, 64, 0.2)",
+					borderWidth: 2,
+					tension: 0,
+					fill: true,
+					stepped: true,
+					yAxisID: "y1",
 				},
 			],
 		},
 		options: {
+			...commonChartOptions,
 			responsive: true,
 			maintainAspectRatio: false,
 			scales: {
-				x: {
-					display: true,
+				y: {
+					...commonChartOptions.scales.y,
 					title: {
-						display: true,
-						text: "Time",
+						...commonChartOptions.scales.y.title,
+						text: "EAR Value",
+					},
+					min: 0,
+					max: 0.4,
+				},
+				y1: {
+					...commonChartOptions.scales.y,
+					position: "right",
+					title: {
+						...commonChartOptions.scales.y.title,
+						text: "Blink State",
+					},
+					min: 0,
+					max: 1,
+					grid: {
+						drawOnChartArea: false, // only show grid for left axis
 					},
 				},
-				y: {
-					display: true,
+				x: {
+					...commonChartOptions.scales.x,
 					title: {
-						display: true,
-						text: "BPM",
+						...commonChartOptions.scales.x.title,
+						text: "Time",
 					},
-					min: 40,
-					max: 140,
 				},
 			},
 		},
@@ -557,57 +645,81 @@ function setupCharts() {
 			],
 			datasets: [
 				{
-					label: "Emotion Levels",
+					label: "Confidence (%)",
 					data: [0, 0, 0, 0, 0, 0, 0],
-					backgroundColor: "rgba(153, 102, 255, 0.2)",
-					borderColor: "rgba(153, 102, 255, 1)",
-					borderWidth: 2,
-					pointBackgroundColor: "rgba(153, 102, 255, 1)",
+					backgroundColor: "rgba(132, 99, 255, 0.3)",
+					borderColor: "rgba(132, 99, 255, 1)",
+					pointBackgroundColor: "rgba(132, 99, 255, 1)",
 					pointBorderColor: "#fff",
 					pointHoverBackgroundColor: "#fff",
-					pointHoverBorderColor: "rgba(153, 102, 255, 1)",
+					pointHoverBorderColor: "rgba(132, 99, 255, 1)",
+					pointRadius: 6,
+					pointHoverRadius: 8,
 				},
 			],
 		},
 		options: {
-			scales: {
-				r: {
-					beginAtZero: true,
-					max: 1,
-				},
-			},
+			responsive: true,
+			maintainAspectRatio: false,
 			plugins: {
 				title: {
 					display: true,
-					text: "Emotion Analysis",
+					text: "Emotion Analysis: neutral",
 					font: {
 						size: 16,
+						weight: "bold",
+					},
+					padding: {
+						top: 10,
+						bottom: 10,
 					},
 				},
 				legend: {
 					display: false,
 				},
+				tooltip: {
+					callbacks: {
+						label: function (context) {
+							return `Confidence: ${context.raw}%`;
+						},
+					},
+				},
 			},
-			responsive: true,
-			maintainAspectRatio: false,
+			scales: {
+				r: {
+					angleLines: {
+						display: true,
+					},
+					suggestedMin: 0,
+					suggestedMax: 100,
+					ticks: {
+						stepSize: 25,
+					},
+					pointLabels: {
+						font: {
+							size: 14,
+						},
+					},
+				},
+			},
 		},
 	});
 }
 
-// Display available mobile devices for pairing
+// Display available tracker devices for pairing
 function displayAvailableMobiles(mobiles) {
 	const mobilesList = document.getElementById("available-mobiles");
 	mobilesList.innerHTML = "";
 
 	if (mobiles.length === 0) {
-		mobilesList.innerHTML = "<li>No mobile devices available for pairing</li>";
+		mobilesList.innerHTML = "<li>No tracker devices available for pairing</li>";
 		return;
 	}
 
 	mobiles.forEach((mobileId) => {
 		const listItem = document.createElement("li");
 		listItem.dataset.id = mobileId;
-		listItem.textContent = `Mobile Device (${mobileId.substring(0, 8)}...)`;
+		listItem.textContent = `Tracker Device (${mobileId.substring(0, 8)}...)`;
 
 		const pairButton = document.createElement("button");
 		pairButton.className = "control-btn";
@@ -621,22 +733,22 @@ function displayAvailableMobiles(mobiles) {
 	});
 }
 
-// Add a new available mobile device to the list
+// Add a new available tracker device to the list
 function addAvailableMobile(mobileId) {
 	const mobilesList = document.getElementById("available-mobiles");
 
-	// Check if it's the first mobile device
+	// Check if it's the first tracker device
 	if (
 		mobilesList
 			.querySelector("li")
-			?.textContent.includes("No mobile devices available")
+			?.textContent.includes("No tracker devices available")
 	) {
 		mobilesList.innerHTML = "";
 	}
 
 	const listItem = document.createElement("li");
 	listItem.dataset.id = mobileId;
-	listItem.textContent = `Mobile Device (${mobileId.substring(0, 8)}...)`;
+	listItem.textContent = `Tracker Device (${mobileId.substring(0, 8)}...)`;
 
 	const pairButton = document.createElement("button");
 	pairButton.className = "control-btn";
@@ -892,11 +1004,18 @@ function renderEyeTrackingVisualization(data) {
 	ctx.translate(headX, headY);
 	ctx.rotate(((data.headDirection?.roll || 0) * Math.PI) / 180);
 
-	// Face outline
+	// Face outline with glow effect
 	ctx.beginPath();
 	ctx.ellipse(0, 0, faceRadius, faceRadius * 1.3, 0, 0, Math.PI * 2);
-	ctx.strokeStyle = "#333";
-	ctx.lineWidth = 2;
+	ctx.strokeStyle = "#9090e0"; // Slightly brighter blue-purple
+	ctx.lineWidth = 3; // Thicker outline
+	ctx.stroke();
+
+	// Add a subtle glow to the face outline
+	ctx.beginPath();
+	ctx.ellipse(0, 0, faceRadius + 2, faceRadius * 1.3 + 2, 0, 0, Math.PI * 2);
+	ctx.strokeStyle = "rgba(144, 144, 224, 0.3)"; // Translucent blue-purple
+	ctx.lineWidth = 6; // Wider for glow effect
 	ctx.stroke();
 
 	// Draw eyes
@@ -915,6 +1034,10 @@ function renderEyeTrackingVisualization(data) {
 		0,
 		Math.PI * 2
 	);
+	ctx.fillStyle = "#e8e8ff"; // Slightly brighter blue-lavender
+	ctx.fill();
+	ctx.strokeStyle = "#9090e0"; // Match face outline color
+	ctx.lineWidth = 2;
 	ctx.stroke();
 
 	// Right eye
@@ -928,6 +1051,10 @@ function renderEyeTrackingVisualization(data) {
 		0,
 		Math.PI * 2
 	);
+	ctx.fillStyle = "#e8e8ff"; // Slightly brighter blue-lavender
+	ctx.fill();
+	ctx.strokeStyle = "#9090e0"; // Match face outline color
+	ctx.lineWidth = 2;
 	ctx.stroke();
 
 	// Calculate pupil size based on dilation percentage
@@ -947,13 +1074,42 @@ function renderEyeTrackingVisualization(data) {
 	const pupilY = eyeOffsetY + gazeY * maxGazeOffset;
 
 	// Draw pupils
-	ctx.fillStyle = "#000";
+	ctx.fillStyle = "#404080"; // Darker blue-purple
 	ctx.beginPath();
 	ctx.arc(leftPupilX, pupilY, pupilSize, 0, Math.PI * 2);
 	ctx.fill();
 
 	ctx.beginPath();
 	ctx.arc(rightPupilX, pupilY, pupilSize, 0, Math.PI * 2);
+	ctx.fill();
+
+	// Add a highlight to each pupil for more visibility
+	const highlightSize = pupilSize * 0.3;
+	const highlightOffsetX = pupilSize * 0.2;
+	const highlightOffsetY = pupilSize * 0.2;
+
+	ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+
+	// Left pupil highlight
+	ctx.beginPath();
+	ctx.arc(
+		leftPupilX - highlightOffsetX,
+		pupilY - highlightOffsetY,
+		highlightSize,
+		0,
+		Math.PI * 2
+	);
+	ctx.fill();
+
+	// Right pupil highlight
+	ctx.beginPath();
+	ctx.arc(
+		rightPupilX - highlightOffsetX,
+		pupilY - highlightOffsetY,
+		highlightSize,
+		0,
+		Math.PI * 2
+	);
 	ctx.fill();
 
 	// Draw mouth based on head position (simple visual feedback)
@@ -964,6 +1120,8 @@ function renderEyeTrackingVisualization(data) {
 	ctx.beginPath();
 	ctx.moveTo(-mouthWidth / 2, mouthY);
 	ctx.quadraticCurveTo(0, mouthY + mouthHeight, mouthWidth / 2, mouthY);
+	ctx.strokeStyle = "#9090e0"; // Slightly brighter blue-purple
+	ctx.lineWidth = 2;
 	ctx.stroke();
 
 	// Draw nose
@@ -978,15 +1136,20 @@ function renderEyeTrackingVisualization(data) {
 
 	// Draw gaze direction vector
 	const gazeLength = Math.min(width, height) * 0.2;
+
+	// Create a glow effect for the gaze vector
+	ctx.shadowColor = "rgba(255, 255, 80, 0.6)";
+	ctx.shadowBlur = 8;
+
 	ctx.beginPath();
 	ctx.moveTo(centerX, centerY);
 	ctx.lineTo(centerX + gazeX * gazeLength, centerY + gazeY * gazeLength);
-	ctx.strokeStyle = "#4a6fa5";
-	ctx.lineWidth = 2;
+	ctx.strokeStyle = "#ffff80"; // Brighter yellow
+	ctx.lineWidth = 3; // Thicker line
 	ctx.stroke();
 
 	// Draw arrow head
-	const arrowSize = 10;
+	const arrowSize = 12; // Slightly larger arrow head
 	const angle = Math.atan2(gazeY, gazeX);
 	const arrowX = centerX + gazeX * gazeLength;
 	const arrowY = centerY + gazeY * gazeLength;
@@ -1002,8 +1165,12 @@ function renderEyeTrackingVisualization(data) {
 		arrowY - arrowSize * Math.sin(angle + Math.PI / 6)
 	);
 	ctx.closePath();
-	ctx.fillStyle = "#4a6fa5";
+	ctx.fillStyle = "#ffff80"; // Brighter yellow
 	ctx.fill();
+
+	// Reset shadow
+	ctx.shadowColor = "transparent";
+	ctx.shadowBlur = 0;
 
 	// Draw reference coordinate system
 	drawCoordinateSystem(ctx, width, height);
@@ -1016,54 +1183,100 @@ function renderEyeTrackingVisualization(data) {
 }
 
 // Draw background grid
-function drawBackgroundGrid(ctx, width, height) {
-	ctx.strokeStyle = "#e0e0e0";
-	ctx.lineWidth = 0.5;
-
-	// Draw vertical grid lines
-	for (let x = 0; x <= width; x += 20) {
-		ctx.beginPath();
-		ctx.moveTo(x, 0);
-		ctx.lineTo(x, height);
-		ctx.stroke();
-	}
-
-	// Draw horizontal grid lines
-	for (let y = 0; y <= height; y += 20) {
-		ctx.beginPath();
-		ctx.moveTo(0, y);
-		ctx.lineTo(width, y);
-		ctx.stroke();
-	}
-
-	// Draw center lines with different color
-	ctx.strokeStyle = "#ccc";
+function drawBackgroundGrid(ctx, canvasWidth, canvasHeight) {
+	// Draw grid lines
+	ctx.strokeStyle = "#3a3a5a"; // Lighter blue-purple color
 	ctx.lineWidth = 1;
 
-	// Vertical center line
+	// Grid spacing
+	const gridSpacing = 50;
+
+	// Draw horizontal grid lines
+	for (let y = 0; y < canvasHeight; y += gridSpacing) {
+		ctx.beginPath();
+		ctx.moveTo(0, y);
+		ctx.lineTo(canvasWidth, y);
+		ctx.stroke();
+	}
+
+	// Draw vertical grid lines
+	for (let x = 0; x < canvasWidth; x += gridSpacing) {
+		ctx.beginPath();
+		ctx.moveTo(x, 0);
+		ctx.lineTo(x, canvasHeight);
+		ctx.stroke();
+	}
+
+	// Draw center lines (x and y axis)
+	const centerX = canvasWidth / 2;
+	const centerY = canvasHeight / 2;
+
+	// Center lines
+	ctx.strokeStyle = "#7070a0"; // Lighter blue-purple color
+	ctx.lineWidth = 2;
+
+	// Draw x-axis
 	ctx.beginPath();
-	ctx.moveTo(width / 2, 0);
-	ctx.lineTo(width / 2, height);
+	ctx.moveTo(0, centerY);
+	ctx.lineTo(canvasWidth, centerY);
 	ctx.stroke();
 
-	// Horizontal center line
+	// Draw y-axis
 	ctx.beginPath();
-	ctx.moveTo(0, height / 2);
-	ctx.lineTo(width, height / 2);
+	ctx.moveTo(centerX, 0);
+	ctx.lineTo(centerX, canvasHeight);
 	ctx.stroke();
+
+	// Draw x and y axis with colors
+	ctx.lineWidth = 3;
+
+	// X-axis (red)
+	ctx.strokeStyle = "#ff6b6b"; // Brighter red
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY);
+	ctx.lineTo(centerX + 100, centerY);
+	ctx.stroke();
+
+	// Y-axis (green)
+	ctx.strokeStyle = "#6bff6b"; // Brighter green
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY);
+	ctx.lineTo(centerX, centerY - 100);
+	ctx.stroke();
+
+	// Add axis labels
+	ctx.font = "12px Arial";
+	ctx.fillStyle = "#ff6b6b"; // Match X-axis color
+	ctx.fillText("X", centerX + 105, centerY - 5);
+
+	ctx.fillStyle = "#6bff6b"; // Match Y-axis color
+	ctx.fillText("Y", centerX + 5, centerY - 105);
+
+	// Add gaze direction labels
+	ctx.fillStyle = "#ccccff"; // Light purple-blue
+	ctx.fillText("Left", 20, centerY - 10);
+	ctx.fillText("Right", canvasWidth - 50, centerY - 10);
+	ctx.fillText("Up", centerX + 10, 20);
+	ctx.fillText("Down", centerX + 10, canvasHeight - 10);
 }
 
 // Draw coordinate system for reference
 function drawCoordinateSystem(ctx, width, height) {
 	const centerX = width / 2;
 	const centerY = height / 2;
-	const axisLength = 30;
+	const axisLength = 40; // Longer axes for better visibility
+
+	// Draw a background circle at the origin for emphasis
+	ctx.beginPath();
+	ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
+	ctx.fillStyle = "rgba(40, 48, 56, 0.7)";
+	ctx.fill();
 
 	// X-axis (red)
 	ctx.beginPath();
 	ctx.moveTo(centerX, centerY);
 	ctx.lineTo(centerX + axisLength, centerY);
-	ctx.strokeStyle = "#f44336";
+	ctx.strokeStyle = "#ff6b6b"; // Brighter red
 	ctx.lineWidth = 2;
 	ctx.stroke();
 
@@ -1073,19 +1286,24 @@ function drawCoordinateSystem(ctx, width, height) {
 	ctx.lineTo(centerX + axisLength - 5, centerY - 3);
 	ctx.lineTo(centerX + axisLength - 5, centerY + 3);
 	ctx.closePath();
-	ctx.fillStyle = "#f44336";
+	ctx.fillStyle = "#ff6b6b"; // Brighter red
 	ctx.fill();
 
-	// X-axis label
-	ctx.fillStyle = "#f44336";
-	ctx.font = "10px Arial";
-	ctx.fillText("X", centerX + axisLength + 2, centerY + 10);
+	// X-axis label with background
+	ctx.fillStyle = "#283038"; // Dark background
+	ctx.beginPath();
+	ctx.rect(centerX + axisLength + 1, centerY + 1, 14, 16);
+	ctx.fill();
+
+	ctx.fillStyle = "#ff6b6b"; // Brighter red
+	ctx.font = "bold 14px Arial"; // Increased font size and made bold
+	ctx.fillText("X", centerX + axisLength + 4, centerY + 14);
 
 	// Y-axis (green)
 	ctx.beginPath();
 	ctx.moveTo(centerX, centerY);
 	ctx.lineTo(centerX, centerY - axisLength);
-	ctx.strokeStyle = "#4caf50";
+	ctx.strokeStyle = "#6bff6b"; // Brighter green
 	ctx.lineWidth = 2;
 	ctx.stroke();
 
@@ -1095,13 +1313,18 @@ function drawCoordinateSystem(ctx, width, height) {
 	ctx.lineTo(centerX - 3, centerY - axisLength + 5);
 	ctx.lineTo(centerX + 3, centerY - axisLength + 5);
 	ctx.closePath();
-	ctx.fillStyle = "#4caf50";
+	ctx.fillStyle = "#6bff6b"; // Brighter green
 	ctx.fill();
 
-	// Y-axis label
-	ctx.fillStyle = "#4caf50";
-	ctx.font = "10px Arial";
-	ctx.fillText("Y", centerX + 5, centerY - axisLength - 2);
+	// Y-axis label with background
+	ctx.fillStyle = "#283038"; // Dark background
+	ctx.beginPath();
+	ctx.rect(centerX + 1, centerY - axisLength - 17, 14, 16);
+	ctx.fill();
+
+	ctx.fillStyle = "#6bff6b"; // Brighter green
+	ctx.font = "bold 14px Arial"; // Increased font size and made bold
+	ctx.fillText("Y", centerX + 4, centerY - axisLength - 4);
 }
 
 // Draw gaze direction labels around the edge
@@ -1109,23 +1332,64 @@ function drawGazeDirectionLabels(ctx, width, height) {
 	const centerX = width / 2;
 	const centerY = height / 2;
 
-	ctx.font = "12px Arial";
-	ctx.fillStyle = "#555";
+	ctx.font = "bold 14px Arial"; // Increased font size and made bold
+	ctx.fillStyle = "#ffffff"; // White for better visibility
 	ctx.textAlign = "center";
 
+	// Add background rectangles for better visibility
+	const labelPadding = 4;
+	const labelHeight = 20;
+	const labelWidth = 50;
+
+	// Top background - "Up"
+	ctx.fillStyle = "rgba(40, 48, 56, 0.7)"; // Semi-transparent dark background
+	ctx.beginPath();
+	ctx.rect(centerX - labelWidth / 2, 5, labelWidth, labelHeight);
+	ctx.fill();
+
+	// Bottom background - "Down"
+	ctx.beginPath();
+	ctx.rect(
+		centerX - labelWidth / 2,
+		height - labelHeight - 5,
+		labelWidth,
+		labelHeight
+	);
+	ctx.fill();
+
+	// Left background - "Left"
+	ctx.beginPath();
+	ctx.rect(5, centerY - labelHeight / 2, labelWidth, labelHeight);
+	ctx.fill();
+
+	// Right background - "Right"
+	ctx.beginPath();
+	ctx.rect(
+		width - labelWidth - 5,
+		centerY - labelHeight / 2,
+		labelWidth,
+		labelHeight
+	);
+	ctx.fill();
+
+	// Draw text in bright color
+	ctx.fillStyle = "#92d9ff"; // Bright blue for better visibility
+
 	// Top - "Up"
-	ctx.fillText("Up", centerX, 15);
+	ctx.textAlign = "center";
+	ctx.fillText("Up", centerX, 20);
 
 	// Bottom - "Down"
-	ctx.fillText("Down", centerX, height - 5);
+	ctx.textAlign = "center";
+	ctx.fillText("Down", centerX, height - 10);
 
 	// Left - "Left"
 	ctx.textAlign = "left";
-	ctx.fillText("Left", 5, centerY);
+	ctx.fillText("Left", 10, centerY + 5);
 
 	// Right - "Right"
 	ctx.textAlign = "right";
-	ctx.fillText("Right", width - 5, centerY);
+	ctx.fillText("Right", width - 10, centerY + 5);
 
 	// Reset text alignment
 	ctx.textAlign = "left";
@@ -1136,6 +1400,7 @@ function updateEyeTrackingTextMetrics(data) {
 	// Update gaze direction text
 	const gazeDirectionEl = document.getElementById("gaze-direction");
 	if (gazeDirectionEl) {
+		gazeDirectionEl.style.color = "#ffffff"; // Set to white for visibility
 		const gazeX = data.gazeDirection?.x || 0;
 		const gazeY = data.gazeDirection?.y || 0;
 		gazeDirectionEl.textContent = `x: ${gazeX.toFixed(2)}, y: ${gazeY.toFixed(
@@ -1146,6 +1411,7 @@ function updateEyeTrackingTextMetrics(data) {
 	// Update gaze text description
 	const gazeTextEl = document.getElementById("gaze-text");
 	if (gazeTextEl) {
+		gazeTextEl.style.color = "#ffffff"; // Set to white for visibility
 		const gazeX = data.gazeDirection?.x || 0;
 		const gazeY = data.gazeDirection?.y || 0;
 
@@ -1169,6 +1435,7 @@ function updateEyeTrackingTextMetrics(data) {
 	// Update pupil diameter
 	const pupilDiameterEl = document.getElementById("pupil-diameter");
 	if (pupilDiameterEl) {
+		pupilDiameterEl.style.color = "#ffffff"; // Set to white for visibility
 		const diameter = data.pupilDiameter || 0;
 		const dilationPercent = data.pupilDilationPercent || 0;
 		pupilDiameterEl.textContent = `${diameter.toFixed(
@@ -1179,6 +1446,7 @@ function updateEyeTrackingTextMetrics(data) {
 	// Update head rotation
 	const headRotationEl = document.getElementById("head-rotation");
 	if (headRotationEl) {
+		headRotationEl.style.color = "#ffffff"; // Set to white for visibility
 		const pitch = data.headDirection?.pitch || 0;
 		const yaw = data.headDirection?.yaw || 0;
 		const roll = data.headDirection?.roll || 0;
@@ -1190,6 +1458,7 @@ function updateEyeTrackingTextMetrics(data) {
 	// Update head movement
 	const headMovementEl = document.getElementById("head-movement");
 	if (headMovementEl) {
+		headMovementEl.style.color = "#ffffff"; // Set to white for visibility
 		const x = data.headPosition?.x || 0;
 		const y = data.headPosition?.y || 0;
 		const z = data.headPosition?.z || 0;
@@ -1208,6 +1477,12 @@ function updateEyeTrackingMetrics(latestData) {
 	const blinkCountElement = document.getElementById("blink-count");
 	const gazeDurationElement = document.getElementById("gaze-duration");
 	const fatigueIndexElement = document.getElementById("fatigue-index");
+
+	// Set defaults to white for better visibility
+	if (blinkRateElement) blinkRateElement.style.color = "#ffffff";
+	if (blinkCountElement) blinkCountElement.style.color = "#ffffff";
+	if (gazeDurationElement) gazeDurationElement.style.color = "#ffffff";
+	if (fatigueIndexElement) fatigueIndexElement.style.color = "#ffffff";
 
 	// Use the latest data for current metrics
 	blinkRateElement.textContent = `${latestData.blinkRate.toFixed(
@@ -1249,7 +1524,7 @@ function updateEyeTrackingMetrics(latestData) {
 
 	fatigueIndexElement.textContent = fatigueIndex.toString();
 
-	// Set color based on fatigue level
+	// Color-code the fatigue index based on value
 	if (fatigueIndex < 30) {
 		fatigueIndexElement.style.color = "#4caf50"; // Green - low fatigue
 	} else if (fatigueIndex < 70) {
@@ -1463,6 +1738,11 @@ function updateHeartRateMetrics() {
 		return;
 	}
 
+	// Set default colors to white for better visibility
+	currentHRElement.style.color = "#ffffff";
+	averageHRElement.style.color = "#ffffff";
+	hrVariabilityElement.style.color = "#ffffff";
+
 	// Current heart rate (latest data point)
 	const currentHR = heartRateData[heartRateData.length - 1].bpm;
 	currentHRElement.textContent = `${Math.round(currentHR)} BPM`;
@@ -1502,6 +1782,10 @@ function updateCombinedMetrics() {
 	const stressLevelElement = document.getElementById("stress-level");
 	const attentionScoreElement = document.getElementById("attention-score");
 
+	// Set default colors to white for better visibility
+	stressLevelElement.style.color = "#ffffff";
+	attentionScoreElement.style.color = "#ffffff";
+
 	// Get the latest data
 	const latestEyeData = eyeTrackingData[eyeTrackingData.length - 1];
 	const latestHeartData = heartRateData[heartRateData.length - 1];
@@ -1519,13 +1803,15 @@ function updateCombinedMetrics() {
 
 	stressLevelElement.textContent = stressLevel.toString();
 
-	// Set color based on stress level
-	if (stressLevel < 30) {
-		stressLevelElement.style.color = "#4caf50"; // Green - low stress
-	} else if (stressLevel < 70) {
-		stressLevelElement.style.color = "#ff9800"; // Orange - moderate stress
-	} else {
-		stressLevelElement.style.color = "#f44336"; // Red - high stress
+	// Set color based on stress level - only if we have valid data
+	if (stressLevel > 0) {
+		if (stressLevel < 30) {
+			stressLevelElement.style.color = "#4caf50"; // Green - low stress
+		} else if (stressLevel < 70) {
+			stressLevelElement.style.color = "#ff9800"; // Orange - moderate stress
+		} else {
+			stressLevelElement.style.color = "#f44336"; // Red - high stress
+		}
 	}
 
 	// Calculate attention score (0-100)
@@ -1538,13 +1824,15 @@ function updateCombinedMetrics() {
 
 	attentionScoreElement.textContent = attentionScore.toString();
 
-	// Set color based on attention score
-	if (attentionScore > 70) {
-		attentionScoreElement.style.color = "#4caf50"; // Green - high attention
-	} else if (attentionScore > 30) {
-		attentionScoreElement.style.color = "#ff9800"; // Orange - moderate attention
-	} else {
-		attentionScoreElement.style.color = "#f44336"; // Red - low attention
+	// Set color based on attention score - only if we have valid data
+	if (attentionScore > 0) {
+		if (attentionScore > 70) {
+			attentionScoreElement.style.color = "#4caf50"; // Green - high attention
+		} else if (attentionScore > 30) {
+			attentionScoreElement.style.color = "#ff9800"; // Orange - moderate attention
+		} else {
+			attentionScoreElement.style.color = "#f44336"; // Red - low attention
+		}
 	}
 
 	// Update combined chart
@@ -1776,9 +2064,7 @@ function processEmotionData(data) {
 
 	// Add to data array
 	emotionData.push(data);
-	console.log(
-		`Added emotion data point. Dominant: ${data.dominant || "None"}`
-	);
+	console.log(`Added emotion data point. Dominant: ${data.dominant || "None"}`);
 
 	// Limit the data array size
 	if (emotionData.length > 30) {
@@ -1803,37 +2089,59 @@ function processEmotionData(data) {
 
 // Update the emotion chart with new data
 function updateEmotionChart(data) {
+	console.log("updateEmotionChart called with data:", JSON.stringify(data));
+
 	if (!emotionChart) {
-		console.error("Emotion chart not available");
+		console.error("Emotion chart not initialized!");
+
+		// Try to check if the element exists
+		const emotionChartElement = document.getElementById("emotion-chart");
+		if (!emotionChartElement) {
+			console.error("Element with ID 'emotion-chart' not found in DOM!");
+		} else {
+			console.log("Element exists but chart not initialized");
+			setupEmotionChart();
+		}
 		return;
 	}
 
 	try {
-		// Use emotion values directly from data object
-		if (!data) {
-			console.error("No emotion values in data");
+		// Ensure we have valid data
+		if (!data || !data.dominant) {
+			console.error("No valid emotion data available");
 			return;
 		}
 
-		// Update emotion chart data
-		emotionChart.data.datasets[0].data = [
-			data.happy * 100,
-			data.sad * 100,
-			data.angry * 100,
-			data.fearful * 100,
-			data.disgusted * 100,
-			data.surprised * 100,
-			data.neutral * 100,
+		// Set single dominant emotion instead of using radar chart with multiple values
+		const dominantEmotion = data.dominant;
+		const dominantScore = data.dominantScore || 0;
+		const confidencePercent = Math.round(dominantScore * 100);
+
+		// Clear previous data and set only the dominant emotion
+		const emotionsList = [
+			"happy",
+			"sad",
+			"angry",
+			"fearful",
+			"disgusted",
+			"surprised",
+			"neutral",
 		];
+		const newData = emotionsList.map((emotion) => {
+			// Set the dominant emotion to its score, zero for others
+			return emotion === dominantEmotion.toLowerCase() ? confidencePercent : 0;
+		});
 
-		// Set the chart title to show dominant emotion
-		emotionChart.options.plugins.title.text = `Emotion Analysis: ${
-			data.dominant || "Neutral"
-		}`;
+		emotionChart.data.datasets[0].data = newData;
 
-		// Update emotion chart
+		// Make the title more descriptive with the confidence percentage
+		emotionChart.options.plugins.title.text = `Emotion Analysis: ${dominantEmotion} (${confidencePercent}%)`;
+
+		// Update the chart
 		emotionChart.update();
-		console.log("Emotion chart updated successfully");
+		console.log(
+			`Emotion chart updated to show ${dominantEmotion} (${confidencePercent}%)`
+		);
 	} catch (error) {
 		console.error("Error updating emotion chart:", error);
 	}
@@ -1870,14 +2178,16 @@ function setupEmotionChart() {
 				],
 				datasets: [
 					{
-						label: "Emotion Score (%)",
+						label: "Confidence (%)",
 						data: [0, 0, 0, 0, 0, 0, 0],
-						backgroundColor: "rgba(75, 192, 192, 0.2)",
-						borderColor: "rgba(75, 192, 192, 1)",
-						pointBackgroundColor: "rgba(75, 192, 192, 1)",
+						backgroundColor: "rgba(132, 99, 255, 0.3)",
+						borderColor: "rgba(132, 99, 255, 1)",
+						pointBackgroundColor: "rgba(132, 99, 255, 1)",
 						pointBorderColor: "#fff",
 						pointHoverBackgroundColor: "#fff",
-						pointHoverBorderColor: "rgba(75, 192, 192, 1)",
+						pointHoverBorderColor: "rgba(132, 99, 255, 1)",
+						pointRadius: 6,
+						pointHoverRadius: 8,
 					},
 				],
 			},
@@ -1887,7 +2197,25 @@ function setupEmotionChart() {
 				plugins: {
 					title: {
 						display: true,
-						text: "Emotion Analysis",
+						text: "Emotion Analysis: neutral",
+						font: {
+							size: 16,
+							weight: "bold",
+						},
+						padding: {
+							top: 10,
+							bottom: 10,
+						},
+					},
+					legend: {
+						display: false,
+					},
+					tooltip: {
+						callbacks: {
+							label: function (context) {
+								return `Confidence: ${context.raw}%`;
+							},
+						},
 					},
 				},
 				scales: {
@@ -1897,11 +2225,19 @@ function setupEmotionChart() {
 						},
 						suggestedMin: 0,
 						suggestedMax: 100,
+						ticks: {
+							stepSize: 25,
+						},
+						pointLabels: {
+							font: {
+								size: 14,
+							},
+						},
 					},
 				},
 			},
 		});
-		console.log("Emotion chart re-initialized successfully");
+		console.log("Emotion chart initialized successfully");
 	} catch (error) {
 		console.error("Error setting up emotion chart:", error);
 	}
@@ -1914,54 +2250,67 @@ function updateEmotionMetrics(data) {
 		return;
 	}
 
-	// Update current emotion display
-	const currentEmotionElement = document.getElementById("current-emotion");
-	const emotionConfidenceElement =
-		document.getElementById("emotion-confidence");
+	try {
+		// Update current emotion display
+		const currentEmotionElement = document.getElementById("current-emotion");
+		const emotionConfidenceElement =
+			document.getElementById("emotion-confidence");
 
-	if (!currentEmotionElement || !emotionConfidenceElement) {
-		console.error("Missing emotion metric elements in the DOM");
-		return;
-	}
+		if (!currentEmotionElement || !emotionConfidenceElement) {
+			console.error("Missing emotion metric elements in the DOM");
+			return;
+		}
 
-	// Update current emotion with dominant emotion
-	const dominantEmotion = data.dominant || "Neutral";
-	currentEmotionElement.textContent = dominantEmotion;
-	console.log(`Updated current emotion: ${dominantEmotion}`);
+		// Set default color to white for better visibility
+		currentEmotionElement.style.color = "#ffffff";
+		emotionConfidenceElement.style.color = "#ffffff";
 
-	// Set color based on emotion type
-	switch (dominantEmotion.toLowerCase()) {
-		case "happy":
-			currentEmotionElement.style.color = "#4caf50"; // Green
-			break;
-		case "sad":
-		case "fearful":
-		case "disgusted":
-			currentEmotionElement.style.color = "#f44336"; // Red
-			break;
-		case "angry":
-			currentEmotionElement.style.color = "#ff5722"; // Deep Orange
-			break;
-		case "surprised":
-			currentEmotionElement.style.color = "#2196f3"; // Blue
-			break;
-		case "neutral":
-		default:
-			currentEmotionElement.style.color = "#9e9e9e"; // Gray
-			break;
-	}
+		// Update current emotion with dominant emotion
+		const dominantEmotion = data.dominant || "neutral";
+		const confidencePercent = Math.round((data.dominantScore || 0) * 100);
 
-	// Calculate confidence percentage for dominant emotion
-	const confidenceValue = data.dominantScore * 100;
-	emotionConfidenceElement.textContent = `${Math.round(confidenceValue)}%`;
-	console.log(`Updated emotion confidence: ${Math.round(confidenceValue)}%`);
+		// Set the emotion text and confidence percentage
+		currentEmotionElement.textContent = dominantEmotion;
+		emotionConfidenceElement.textContent = `${confidencePercent}%`;
 
-	// Set color based on confidence level
-	if (confidenceValue > 70) {
-		emotionConfidenceElement.style.color = "#4caf50"; // Green - high confidence
-	} else if (confidenceValue > 40) {
-		emotionConfidenceElement.style.color = "#ff9800"; // Orange - medium confidence
-	} else {
-		emotionConfidenceElement.style.color = "#f44336"; // Red - low confidence
+		console.log(
+			`Updated emotion metrics: ${dominantEmotion} (${confidencePercent}%)`
+		);
+
+		// Set color based on emotion type - only if we have valid data
+		if (dominantEmotion && confidencePercent > 0) {
+			switch (dominantEmotion.toLowerCase()) {
+				case "happy":
+					currentEmotionElement.style.color = "#4caf50"; // Green
+					emotionConfidenceElement.style.color = "#4caf50";
+					break;
+				case "sad":
+					currentEmotionElement.style.color = "#2196f3"; // Blue
+					emotionConfidenceElement.style.color = "#2196f3";
+					break;
+				case "angry":
+					currentEmotionElement.style.color = "#f44336"; // Red
+					emotionConfidenceElement.style.color = "#f44336";
+					break;
+				case "fearful":
+					currentEmotionElement.style.color = "#9c27b0"; // Purple
+					emotionConfidenceElement.style.color = "#9c27b0";
+					break;
+				case "disgusted":
+					currentEmotionElement.style.color = "#795548"; // Brown
+					emotionConfidenceElement.style.color = "#795548";
+					break;
+				case "surprised":
+					currentEmotionElement.style.color = "#ff9800"; // Orange
+					emotionConfidenceElement.style.color = "#ff9800";
+					break;
+				case "neutral":
+				default:
+					// Keep white for neutral when we have actual data
+					break;
+			}
+		}
+	} catch (error) {
+		console.error("Error updating emotion metrics:", error);
 	}
 }
